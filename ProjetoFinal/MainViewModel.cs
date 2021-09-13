@@ -13,15 +13,13 @@ namespace ProjetoFinal
     using OxyPlot.Axes;
     public class MainViewModel
     {
-
-  
         public MainViewModel() // entrar com uma lista do tipo coordenada
-        { 
+        {
             //receber uma lista de pontos flutuantes
 
             this.MyModel = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
 
-            
+
             /*List<Coordenada> pontos = new List<Coordenada>();
             List<Coordenada> pontosentrada = new List<Coordenada>();
             //pontos = refpontos;
@@ -64,7 +62,7 @@ namespace ProjetoFinal
 
             /*lineSeries1.Points.Add(new DataPoint(pontos[0].x, pontos[0].y));
             lineSeries1.Points.Add(new DataPoint(100, 40));*/
-            
+
             this.MyModel.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
             this.MyModel.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
             //this.MyModel.Series.Add(graflinha);
