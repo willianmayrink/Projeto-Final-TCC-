@@ -65,11 +65,29 @@ namespace ProjetoFinal
 
             this.MyModel.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
             this.MyModel.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
+
+            this.MyModel = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
+
+            var grafpontos = new ScatterSeries();
+            grafpontos.Points.Add(new ScatterPoint(40, 40, 4));
+            
+            this.MyModel.Series.Add(grafpontos);
             //this.MyModel.Series.Add(graflinha);
             //this.MyModel.Series.Add(grafpontos);*/
 
         }
 
+        public MainViewModel(List<Coordenada> a)
+        {
+            this.MyModel = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
+            this.MyModel.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
+            this.MyModel.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
+            var grafpontos = new ScatterSeries();
+            grafpontos.Points.Add(new ScatterPoint(40, 40, 4));
+            grafpontos.Points.Add(new ScatterPoint(40, 40, 4));
+            this.MyModel.Series.Add(grafpontos);
+        }
         public PlotModel MyModel { get; private set; }
+
     }
 }

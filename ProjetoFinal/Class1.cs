@@ -44,7 +44,7 @@ namespace ProjetoFinal
 
 
 
-                var modelo = new Window1(doc,selElements);
+                var modelo = new Window1(doc, selElements);
                 modelo.ShowDialog();
 
 

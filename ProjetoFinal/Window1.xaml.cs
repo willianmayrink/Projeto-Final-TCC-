@@ -14,6 +14,8 @@ using System.Windows.Shapes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Series;
 using Element = Autodesk.Revit.DB.Element;
 
 namespace ProjetoFinal
@@ -23,13 +25,28 @@ namespace ProjetoFinal
     /// </summary>
     public partial class Window1 : Window
     {
-        public List<Reference> SelElements  { get; set; }
+        public List<Reference> SelElements { get; set; }
 
         public Document Document { get; set; }
+
+
         public Window1()
         {
+
             InitializeComponent();
-            DataContext = this;          
+            PlotModel model = new PlotModel();
+
+            model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
+            model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
+            model = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
+
+            var grafpontos = new ScatterSeries();
+            grafpontos.Points.Add(new ScatterPoint(40, 40, 0));
+
+            model.Series.Add(grafpontos);
+            Grafica.Model = model;
+            DataContext = this;
+           
 
         }
 
@@ -39,13 +56,98 @@ namespace ProjetoFinal
             SelElements = selElements;
             DataContext = this;
             InitializeComponent();
+            PlotModel model = new PlotModel();
+
+            model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
+            model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
+            model = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
+
+            var grafpontos = new ScatterSeries();
+            grafpontos.Points.Add(new ScatterPoint(40, 40, 0));
+
+            model.Series.Add(grafpontos);
+            Grafica.Model = model;
             
+        }
+
+        private void checkBox1_Click_1(object sender, RoutedEventArgs e)
+        {
+            checkBox2.IsChecked = false;
+            checkBox3.IsChecked = false;
+            checkBox4.IsChecked = false;
+
+        }
+
+        private void checkBox2_Click(object sender, RoutedEventArgs e)
+        {
+            checkBox1.IsChecked = false;
+            checkBox3.IsChecked = false;
+            checkBox4.IsChecked = false;
+        }
+
+        private void checkBox4_Click(object sender, RoutedEventArgs e)
+        {
+            checkBox1.IsChecked = false;
+            checkBox3.IsChecked = false;
+            checkBox2.IsChecked = false;
+        }
+
+        private void checkBox3_Click(object sender, RoutedEventArgs e)
+        {
+            checkBox1.IsChecked = false;
+            checkBox4.IsChecked = false;
+            checkBox2.IsChecked = false;
+        }
+
+
+        private void comboBox1_Loaded(object sender, RoutedEventArgs e)
+        {
+            comboBox1.Items.Add("Inserir valores");
+            comboBox1.Items.Add(3.0);
+            comboBox1.Items.Add(4.0);
+            comboBox1.Items.Add(6.0);
+            comboBox1.Items.Add(8.0);
+            comboBox1.Items.Add(10.0);
+            comboBox1.Items.Add(12.0);
+            comboBox1.Items.Add(14.0);
+            comboBox1.Items.Add(16.0);
+            comboBox1.Items.Add(18.0);
+            comboBox1.Items.Add(20.0);
+            comboBox1.Items.Add(22.0);
+            comboBox1.Items.Add(24.0);
+
+        }
+
+        private void comboBox1_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (comboBox1.SelectedValue.ToString() != "Inserir valores")
+            {
+
+                labelFpk.IsEnabled = false;
+                labelFpkcheio.IsEnabled = false;
+
+
+                ResistenciaBloco fpktab = TabRes.GetResistencia(Convert.ToDouble(comboBox1.SelectedValue.ToString()));
+                labelFpk.Text = fpktab.Fpk.ToString();
+
+                ResistenciaBloco fpkcheiotab = TabRes.GetResistencia(Convert.ToDouble(comboBox1.SelectedValue.ToString()));
+                labelFpkcheio.Text = fpkcheiotab.FpkCheio.ToString();
+
+
+            }
+            else
+            {
+                labelFpk.IsEnabled = true;
+                labelFpk.Clear();
+                labelFpkcheio.IsEnabled = true;
+                labelFpkcheio.Clear();
+            }
+
         }
 
         private void btnCalcular_Click(object sender, RoutedEventArgs e)
         {
             //abrir janela para entrar com valores de input
-
 
             List<Blocos> BlocosAlma = new List<Blocos>();
             List<Blocos> BlocosFlange = new List<Blocos>();
@@ -69,8 +171,6 @@ namespace ProjetoFinal
                 double m1 = location1.Point.X;
                 teste1 = elemento.Symbol.GetParameters("Comprimento")[0].AsDouble();*/
 
-
-                //TaskDialog.Show("TESTEEEE", m1.ToString() + "/n" + teste1.ToString());
             };
 
 
@@ -120,11 +220,11 @@ namespace ProjetoFinal
             if (BlocosAlma.Count == 0)
             {
                 TaskDialog.Show("ERRO", "Selecione os elementos");
-                
+
             }
 
-            BlocosAlma = BlocosAlma.OrderBy(x => x.Xcg).ToList();
-            BlocosFlange = BlocosFlange.OrderBy(x => x.Xcg).ToList();
+            BlocosAlma = BlocosAlma.OrderBy(m => m.Xcg).ToList();
+            BlocosFlange = BlocosFlange.OrderBy(m => m.Xcg).ToList();
 
             //depois de ordenado tudo, começa esse passo do codigo
             double InicioLN; //encontrando o ponto de inicio e fim chute LN
@@ -132,7 +232,8 @@ namespace ProjetoFinal
             double EixoPrincipal = BlocosAlma[0].Ycg;
             double he = 220; //receber valor como input
             double te = 14; // espessura de um bloco qualquer
-            double R = 1 - Math.Pow((he - te) / 40, 3);
+            double indesbeltez = he / te;
+            double R = 0.939;
 
             List<TabelaResistencia> resistencias = new List<TabelaResistencia>(); // colunas fbk / fpk/ fpk*  //tabela resistencia referencia norma VALORES EM MPa
             resistencias.Add(new TabelaResistencia(3, 2.4, 4.8));
@@ -187,87 +288,75 @@ namespace ProjetoFinal
                 //
             }
             #endregion
-
-
-
+            PlotModel model = new PlotModel();
+            model = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
+            var grafpontos = new ScatterSeries();
             // Calculo dos pontos de momento e normal percorrendo a seção
             double normal, momento;
             double Xcg = CalcularCentroide(BlocosAlma, BlocosFlange, InicioLN);
-            double ChuteLN = InicioLN;  // colocando como start da ln o fim da seção , considerando assim partindo da parte toda tracionada até começo da seção considerando parte toda comprimida
-
-            /*while (ChuteLN >= InicioLN)
-            {*/
-            normal = Normal(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R);
-            momento = Momento(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R, Xcg);
-            //ChuteLN -= 1;
-            /*}*/
-        }
-         double Normal(List<Ferros> ferros, List<Blocos> alma, List<Blocos> flange, double fimLN, double InicioLN, double Xln, double eixoprincipal, double fpkcheio, double fpk, double R)
-        {   // MPa para KN/cm2 dividir por 10
-            double tracao = 0;
-            double compressao = 0;
-            double Xlc = Xln + Math.Abs(Xln - fimLN) * 0.2;
-            double Es = 21000; // KN/cm²  210000MPa
-            double fyk = 50; //KN/cm²     //500MPa
-            double deformacaoescoamento = (fyk / 1.15) / Es; // fyd/Es                   
-            foreach (Ferros ferro in ferros)
+            double ChuteLN = fimLN;  // colocando como start da ln o fim da seção , considerando assim partindo da parte toda tracionada até começo da seção considerando parte toda comprimida
+            List<Coordenada> pontosgraficoresistencia = new List<Coordenada>();
+            while (ChuteLN >= InicioLN)
             {
-                if (ferro.Xcg < Xln)
-                {
-                    double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));  // compatibilização  (0.003 / x) = Ei / (di - x) 
+                normal = Normal(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R);
+                momento = Momento(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R, Xcg);
+                ChuteLN= ChuteLN-10;
 
-                    if (ei < deformacaoescoamento)
-                    {   // compatibilização    (0.003 / x) = Ei / (di - x) 
-                        tracao += ferro.area / 1.15 * ei * Es * 0.5;   //(As/Gamas) * Ei* ES    //KN  (0.5 da norma)
-                    }
-                    else if (ei >= deformacaoescoamento && ei < 0.01)
-                    {
-                        tracao += ferro.area * fyk / 1.15 * 0.5;   // (As/Gamas) * fyk * 0.5       (0.5 da norma) // KN/cm²
-                    }
-                    else if (ei > 0.01)
-                    {
-                        // condição que ferro ruptura e nao é encontrado um valor de momento para este caso de LN.
-                    }
-                }
-            }
-
-            foreach (Blocos bloco in alma)
-            {
-                if ((bloco.Xcg - bloco.comprimento / 2) > Xlc)
-                {
-                    //Bloco inteiro entra na contribuição, ai só analisar % de graute, sua resistencia e multiplicar pelo comprimento
-                    if (bloco.grauteado)
-                    {
-                        compressao += (fpkcheio * 0.7) / 2.0 * bloco.area * R;
-                    }
-                    else
-                    {
-                        compressao += (fpk * 0.7) / 2.0 * bloco.area * R;
-                    }
-
-                }
-                else if (((bloco.Xcg - bloco.comprimento / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.comprimento / 2)))
-                {
-                    if (bloco.grauteado)
-                    {
-                        compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R;
-                    }
-                    else
-                    {
-                        compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R;
-                    }
-                }
-
+                grafpontos.Points.Add(new ScatterPoint(normal, momento, 2));
             }
 
 
-            foreach (Blocos bloco in flange)
-            {
+            /*PlotModel a = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
+            ///a.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 *///});
+            ///*a.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
+            /*var grafpontos = new ScatterSeries();
+            grafpontos.Points.Add(new ScatterPoint(5, 5, 8));
+            a.Series.Add(grafpontos);
+            DataContext = this;*/
+            List<Coordenada> teste = new List<Coordenada>();
+            grafpontos.MarkerType = MarkerType.Circle;
+            grafpontos.MarkerFill = OxyColors.Red;
+            model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
+            model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
+            model.Series.Add(grafpontos);
+            Grafica.Model = model;
+            
 
-                if ((bloco.Xcg - bloco.espessura / 2) > Xlc) // entra toda espessura do bloco na contribuição
+
+            double Normal(List<Ferros> ferros, List<Blocos> alma, List<Blocos> flange, double reffimLN, double refInicioLN, double Xln, double eixoprincipal, double reffpkcheio, double reffpk, double refR)
+            {   // MPa para KN/cm2 dividir por 10
+                double tracao = 0;
+                double compressao = 0;
+                double Xlc = Xln + Math.Abs(Xln - fimLN) * 0.2;
+                double Es = 21000; // KN/cm²  210000MPa
+                double fyk = 50; //KN/cm²     //500MPa
+                double deformacaoescoamento = (fyk / 1.15) / Es; // fyd/Es                   
+                foreach (Ferros ferro in ferros)
                 {
-                    if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
+                    if (ferro.Xcg < Xln)
                     {
+                        double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));  // compatibilização  (0.003 / x) = Ei / (di - x) 
+
+                        if (ei < deformacaoescoamento)
+                        {   // compatibilização    (0.003 / x) = Ei / (di - x) 
+                            tracao += ferro.area / 1.15 * ei * Es * 0.5;   //(As/Gamas) * Ei* ES    //KN  (0.5 da norma)
+                        }
+                        else if (ei >= deformacaoescoamento && ei < 0.01)
+                        {
+                            tracao += ferro.area * fyk / 1.15 * 0.5;   // (As/Gamas) * fyk * 0.5       (0.5 da norma) // KN/cm²
+                        }
+                        else if (ei > 0.01)
+                        {
+                            // condição que ferro ruptura e nao é encontrado um valor de momento para este caso de LN.
+                        }
+                    }
+                }
+
+                foreach (Blocos bloco in alma)
+                {
+                    if ((bloco.Xcg - bloco.comprimento / 2) > Xlc)
+                    {
+                        //Bloco inteiro entra na contribuição, ai só analisar % de graute, sua resistencia e multiplicar pelo comprimento
                         if (bloco.grauteado)
                         {
                             compressao += (fpkcheio * 0.7) / 2.0 * bloco.area * R;
@@ -278,119 +367,122 @@ namespace ProjetoFinal
                         }
 
                     }
-                    else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
+                    else if (((bloco.Xcg - bloco.comprimento / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.comprimento / 2)))
                     {
-                        //entra o comprimento parcial do bloco na conta 
                         if (bloco.grauteado)
                         {
-                            compressao += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R;
+                            compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R;
                         }
                         else
                         {
-                            compressao += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R;
+                            compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R;
                         }
                     }
 
                 }
-                else if (((bloco.Xcg - bloco.espessura / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.espessura / 2))) // entra uma parte da espessura do bloco
-                {
-                    if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
-                    {
 
-                        //entra contribuição do comprimento inteiro, mas só uma parte da espessura
-                        if (bloco.grauteado)
+
+                foreach (Blocos bloco in flange)
+                {
+
+                    if ((bloco.Xcg - bloco.espessura / 2) > Xlc) // entra toda espessura do bloco na contribuição
+                    {
+                        if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
                         {
-                            compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R;
+                            if (bloco.grauteado)
+                            {
+                                compressao += (fpkcheio * 0.7) / 2.0 * bloco.area * R;
+                            }
+                            else
+                            {
+                                compressao += (fpk * 0.7) / 2.0 * bloco.area * R;
+                            }
+
+                        }
+                        else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
+                        {
+                            //entra o comprimento parcial do bloco na conta 
+                            if (bloco.grauteado)
+                            {
+                                compressao += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R;
+                            }
+                            else
+                            {
+                                compressao += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R;
+                            }
+                        }
+
+                    }
+                    else if (((bloco.Xcg - bloco.espessura / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.espessura / 2))) // entra uma parte da espessura do bloco
+                    {
+                        if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
+                        {
+
+                            //entra contribuição do comprimento inteiro, mas só uma parte da espessura
+                            if (bloco.grauteado)
+                            {
+                                compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R;
+                            }
+                            else
+                            {
+                                compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R;
+                            }
+                        }
+                        else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
+                        {
+                            //entra o comprimento parcial do bloco na conta e também uma espessura parcial
+                            if (bloco.grauteado)
+                            {
+                                compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R;
+                            }
+                            else
+                            {
+                                compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R;
+                            }
+                        }
+
+                    }
+                }
+
+                return compressao - tracao;
+
+            }
+            double Momento(List<Ferros> ferros, List<Blocos> alma, List<Blocos> flange, double reffimLN, double refInicioLN, double Xln, double eixoprincipal, double reffpkcheio, double reffpk, double refR, double refXcg)
+            {
+
+                double Mrd = 0;
+                double Xlc = Xln + Math.Abs(Xln - fimLN) * 0.2;
+                double Es = 21000; // kN/cm²
+                double fyk = 50; //kN/cm²
+                double defescoamento = (fyk / 1.15) / Es; // fyd/Es
+
+                foreach (Ferros ferro in ferros)
+                {
+                    if (ferro.Xcg < Xln)
+                    {
+                        double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));
+                        if (ei < defescoamento)
+                        {   // compatibilização    (0.003 / x) = Ei / (di - x) 
+                            Mrd += ferro.area / 1.15 * ei * Es * 0.5 * (Xcg - ferro.Xcg);   //(As/Gamas) * Ei* ES * di //Valor em KN*cm
+                        }
+                        else if (ei > defescoamento && ei < 0.01)
+                        {
+                            Mrd += ferro.area * fyk / 1.15 * 0.5 * (Xcg - ferro.Xcg);  //(As/Gamas) * fyk * di
                         }
                         else
                         {
-                            compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R;
+                            // condição que ferro ruptura e nao é encontrado um valor de momento para este caso de LN.
                         }
                     }
-                    else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
-                    {
-                        //entra o comprimento parcial do bloco na conta e também uma espessura parcial
+                }
+                foreach (Blocos bloco in alma)
+                {
+                    if ((bloco.Xcg - bloco.comprimento / 2) > Xlc)
+                    {   //Bloco inteiro entra na contribuição, ai só analisar % de graute, sua resistencia e multiplicar pelo comprimento
+
                         if (bloco.grauteado)
                         {
-                            compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R;
-                        }
-                        else
-                        {
-                            compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R;
-                        }
-                    }
-
-                }
-            }
-
-            return compressao - tracao;
-
-        }
-         double Momento(List<Ferros> ferros, List<Blocos> alma, List<Blocos> flange, double fimLN, double InicioLN, double Xln, double eixoprincipal, double fpkcheio, double fpk, double R, double Xcg)
-        {
-
-            double Mrd = 0;
-            double Xlc = Xln + Math.Abs(Xln - fimLN) * 0.2;
-            double Es = 21000; // kN/cm²
-            double fyk = 50; //kN/cm²
-            double defescoamento = (fyk / 1.15) / Es; // fyd/Es
-
-            foreach (Ferros ferro in ferros)
-            {
-                if (ferro.Xcg < Xln)
-                {
-                    double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));
-                    if (ei < defescoamento)
-                    {   // compatibilização    (0.003 / x) = Ei / (di - x) 
-                        Mrd += ferro.area / 1.15 * ei * Es * 0.5 * (Xcg - ferro.Xcg);   //(As/Gamas) * Ei* ES * di //Valor em KN*cm
-                    }
-                    else if (ei > defescoamento && ei < 0.01)
-                    {
-                        Mrd += ferro.area * fyk / 1.15 * 0.5 * (Xcg - ferro.Xcg);  //(As/Gamas) * fyk * di
-                    }
-                    else
-                    {
-                        // condição que ferro ruptura e nao é encontrado um valor de momento para este caso de LN.
-                    }
-                }
-            }
-            foreach (Blocos bloco in alma)
-            {
-                if ((bloco.Xcg - bloco.comprimento / 2) > Xlc)
-                {   //Bloco inteiro entra na contribuição, ai só analisar % de graute, sua resistencia e multiplicar pelo comprimento
-
-                    if (bloco.grauteado)
-                    {
-                        Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg); // Fd= fpk* 0.7 / 2 * A * R * Di  //Valor em KN*cm
-                    }
-                    else
-                    {
-                        Mrd += (fpk * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg);
-                    }
-
-                }
-                else if (((bloco.Xcg - bloco.comprimento / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.comprimento / 2)))
-                {
-                    if (bloco.grauteado)
-                    {
-                        Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
-                    }
-                    else
-                    {
-                        Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
-                    }
-                }
-            }
-            foreach (Blocos bloco in flange)
-            {
-
-                if ((bloco.Xcg - bloco.espessura / 2) > Xlc) // entra toda espessura do bloco na contribuição
-                {
-                    if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
-                    {
-                        if (bloco.grauteado)
-                        {
-                            Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg);
+                            Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg); // Fd= fpk* 0.7 / 2 * A * R * Di  //Valor em KN*cm
                         }
                         else
                         {
@@ -398,70 +490,100 @@ namespace ProjetoFinal
                         }
 
                     }
-                    else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
+                    else if (((bloco.Xcg - bloco.comprimento / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.comprimento / 2)))
                     {
-                        //entra o comprimento parcial do bloco na conta // Considerar parte nao grauteada
                         if (bloco.grauteado)
                         {
-                            Mrd += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R * (bloco.Xcg - Xcg);
+                            Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
                         }
                         else
                         {
-                            Mrd += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R * (bloco.Xcg - Xcg);
+                            Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
                         }
                     }
-
                 }
-                else if (((bloco.Xcg - bloco.espessura / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.espessura / 2))) // entra uma parte da espessura do bloco
+                foreach (Blocos bloco in flange)
                 {
-                    if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
-                    {
 
-                        //entra contribuição do comprimento inteiro, mas só uma parte da espessura, ver como calcular...
-                        if (bloco.grauteado)
-                        {
-                            Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
-                        }
-                        else
-                        {
-                            Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
-                        }
-                    }
-                    else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
+                    if ((bloco.Xcg - bloco.espessura / 2) > Xlc) // entra toda espessura do bloco na contribuição
                     {
-                        //entra o comprimento parcial do bloco na conta e também uma espessura parcial, ver como calcular...
-                        // considerar como nao grauteado
-                        if (bloco.grauteado)
+                        if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
                         {
-                            Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                            if (bloco.grauteado)
+                            {
+                                Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg);
+                            }
+                            else
+                            {
+                                Mrd += (fpk * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg);
+                            }
+
                         }
-                        else
+                        else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
                         {
-                            Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                            //entra o comprimento parcial do bloco na conta // Considerar parte nao grauteada
+                            if (bloco.grauteado)
+                            {
+                                Mrd += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R * (bloco.Xcg - Xcg);
+                            }
+                            else
+                            {
+                                Mrd += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R * (bloco.Xcg - Xcg);
+                            }
+                        }
+
+                    }
+                    else if (((bloco.Xcg - bloco.espessura / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.espessura / 2))) // entra uma parte da espessura do bloco
+                    {
+                        if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
+                        {
+
+                            //entra contribuição do comprimento inteiro, mas só uma parte da espessura, ver como calcular...
+                            if (bloco.grauteado)
+                            {
+                                Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                            }
+                            else
+                            {
+                                Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                            }
+                        }
+                        else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
+                        {
+                            //entra o comprimento parcial do bloco na conta e também uma espessura parcial, ver como calcular...
+                            // considerar como nao grauteado
+                            if (bloco.grauteado)
+                            {
+                                Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                            }
+                            else
+                            {
+                                Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                            }
                         }
                     }
                 }
+                return Mrd / 100; //passando para KN*m
             }
-            return Mrd / 100; //passando para KN*m
-        }
 
-        public double CalcularCentroide(List<Blocos> alma, List<Blocos> flange, double InicioLN) // entrar com lista de blocosflange e lista de bloco normal e inicio linha neutra
-        {
-            double Xcg, SomaXi = 0;
-            double Area = 0;
-
-            foreach (Blocos bloco in flange)
+            double CalcularCentroide(List<Blocos> alma, List<Blocos> flange, double refInicioLN) // entrar com lista de blocosflange e lista de bloco normal e inicio linha neutra
             {
-                Area += bloco.espessura * bloco.comprimento;
-                SomaXi += bloco.espessura * bloco.comprimento * Math.Abs((bloco.Xcg - InicioLN));
-            }
+                double refXcg, SomaXi = 0;
+                double Area = 0;
 
-            foreach (Blocos bloco in alma)
-            {
-                Area += bloco.espessura * bloco.comprimento;
-                SomaXi += bloco.espessura * bloco.comprimento * Math.Abs((bloco.Xcg - InicioLN));
+                foreach (Blocos bloco in flange)
+                {
+                    Area += bloco.espessura * bloco.comprimento;
+                    SomaXi += bloco.espessura * bloco.comprimento * Math.Abs((bloco.Xcg - InicioLN));
+                }
+
+                foreach (Blocos bloco in alma)
+                {
+                    Area += bloco.espessura * bloco.comprimento;
+                    SomaXi += bloco.espessura * bloco.comprimento * Math.Abs((bloco.Xcg - InicioLN));
+                }
+                return (SomaXi / Area + InicioLN);
             }
-            return (SomaXi / Area + InicioLN);
         }
     }
 }
