@@ -74,7 +74,6 @@
     <Compile Include="Blocos.cs" />
     <Compile Include="Class1.cs" />
     <Compile Include="Coordenada.cs" />
-    <Compile Include="MainViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

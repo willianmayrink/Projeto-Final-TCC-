@@ -27,27 +27,20 @@ namespace ProjetoFinal
     {
         public List<Reference> SelElements { get; set; }
 
-        public Document Document { get; set; }
-
+        public Document Document { get; set; }       
 
         public Window1()
         {
 
             InitializeComponent();
-            PlotModel model = new PlotModel();
-
-            model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
-            model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
-            model = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
-
+            // Gráfico apenas representativo para quando iniciar a para inicilizar a janela
+            PlotModel model = new PlotModel() { Title = "Gráfico resistência Momento x Normal" }; ;
+            model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom });
+            model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left});
             var grafpontos = new ScatterSeries();
-            grafpontos.Points.Add(new ScatterPoint(40, 40, 0));
-
+            grafpontos.Points.Add(new ScatterPoint(40, 40, 0)); // ponto com tamanho 0, para conter ao menos um dado e plotar o grafico representativo.
             model.Series.Add(grafpontos);
             Grafica.Model = model;
-            DataContext = this;
-           
-
         }
 
         public Window1(Document doc, List<Reference> selElements)
@@ -56,6 +49,8 @@ namespace ProjetoFinal
             SelElements = selElements;
             DataContext = this;
             InitializeComponent();
+
+    
             PlotModel model = new PlotModel();
 
             model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
@@ -98,7 +93,6 @@ namespace ProjetoFinal
             checkBox4.IsChecked = false;
             checkBox2.IsChecked = false;
         }
-
 
         private void comboBox1_Loaded(object sender, RoutedEventArgs e)
         {
@@ -154,6 +148,25 @@ namespace ProjetoFinal
             //List<Graute> ListaGraute = new List<Graute>();
             List<Ferros> ListaFerros = new List<Ferros>();
 
+
+            int DirecaoVento = 0;
+            switch (true)
+            {
+                case true when checkBox1.IsChecked == true:
+                    DirecaoVento = 1;
+                    break;
+                case true when checkBox2.IsChecked == true:
+                    DirecaoVento = 2;
+                    break;
+                case true when checkBox3.IsChecked == true:
+                    DirecaoVento = 3;
+                    break;
+                case true when checkBox4.IsChecked == true:
+                    DirecaoVento = 4;
+                    break;
+            }
+
+
             foreach (Reference refelem in SelElements) //Trabalhando com os dados de input, referenciando cada elemento na sua devida lista
             {
                 Element auxelem = Document.GetElement(refelem);
@@ -161,11 +174,11 @@ namespace ProjetoFinal
                 string tipoelemento = elemento.Symbol.GetParameters("TipoElemento")[0].AsString();
                 if (tipoelemento == "Bloco")
                 {
-                    AddBloco(elemento, auxelem);
+                    AddBloco(elemento, auxelem, DirecaoVento);
                 }
                 else if (tipoelemento == "Ferro")
                 {
-                    AddFerro(elemento);
+                    AddFerro(elemento, DirecaoVento);
                 }
                 /*var location1 = elemento.Location as LocationPoint;
                 double m1 = location1.Point.X;
@@ -173,22 +186,55 @@ namespace ProjetoFinal
 
             };
 
-
-
-            void AddBloco(FamilyInstance familyelem, Element elem)
+            void AddBloco(FamilyInstance familyelem, Element elem, int direcaovento)
             {
                 var location = familyelem.Location as LocationPoint;
                 double refcomprimento = familyelem.Symbol.GetParameters("Comprimento")[0].AsDouble() * 30.48;
                 double refespessura = familyelem.Symbol.GetParameters("Espessura")[0].AsDouble() * 30.48;
-                double refXcg = location.Point.X * 30.48;
-                double refYcg = location.Point.Y * 30.48;
-                double reforientacao = Math.Round(location.Rotation / Math.PI, 6);
+                double refXcg = 0;
+                double refYcg = 0;
+                switch (direcaovento)
+                {
+
+                    case 1:
+                        refXcg = location.Point.Y * 30.48;
+                        refYcg = location.Point.X * 30.48;
+                        break;
+
+                    case 2:
+                        refXcg = location.Point.X * 30.48;
+                        refYcg = location.Point.Y * 30.48;
+                        break;
+
+                    case 3:
+                        refXcg = -location.Point.X * 30.48;
+                        refYcg = location.Point.Y * 30.48;
+                        break;
+
+                    case 4:
+                        refXcg = -location.Point.Y * 30.48;
+                        refYcg = location.Point.X * 30.48;
+                        break;
+                }
+                /*double refXcg = location.Point.X * 30.48;
+                double refYcg = location.Point.Y * 30.48;*/
+
+                double reforientacao = 0;
+                if (DirecaoVento == 1 || DirecaoVento == 4) {
+                    reforientacao = Math.Round(location.Rotation / Math.PI, 6) + 0.5;
+                } else
+                {
+                    reforientacao = Math.Round(location.Rotation / Math.PI, 6);
+                }
+
+
+
                 double refarea = refcomprimento * refespessura;
                 string refgrauteado = elem.GetParameters("grauteado")[0].AsValueString();
                 //string refgrauteado = elem
 
 
-                if (reforientacao == 0.5 || reforientacao == 1.5)
+                if (reforientacao == 0.5 || reforientacao == 1.5 || reforientacao == 2.5)
                 {
                     BlocosFlange.Add(new Blocos(refcomprimento, refespessura, refXcg, refYcg, reforientacao, refarea, refgrauteado));
                 }
@@ -198,17 +244,38 @@ namespace ProjetoFinal
                 }
             }
 
-            void AddFerro(FamilyInstance elem)
+            void AddFerro(FamilyInstance elem, int direcaovento)
             {
                 var location = elem.Location as LocationPoint;
                 double refbitola = elem.Symbol.GetParameters("Bitola")[0].AsDouble() * 30.48;
                 double refarea = Math.PI * refbitola * refbitola / 4 / 100;  //  PI*D²/4   cm²
-                double refXcg = location.Point.X * 30.48;
-                double refYcg = location.Point.Y * 30.48;
+                double refXcg = 0;
+                double refYcg = 0;
+                switch (direcaovento)
+                {
+                    case 1:
+                        refXcg = location.Point.Y * 30.48;
+                        refYcg = location.Point.X * 30.48;
+                        break;
+
+                    case 2:
+                        refXcg = location.Point.X * 30.48;
+                        refYcg = location.Point.Y * 30.48;
+                        break;
+
+                    case 3:
+                        refXcg = -location.Point.X * 30.48;
+                        refYcg = location.Point.Y * 30.48;
+                        break;
+
+                    case 4:
+                        refXcg = -location.Point.Y * 30.48;
+                        refYcg = location.Point.X * 30.48;
+                        break;
+                }
+
                 ListaFerros.Add(new Ferros(refbitola, refXcg, refYcg, refarea));
             }
-
-
 
             //var plottest = new PlotModel { Title = "TESTE" };
             //plottest.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
@@ -231,16 +298,35 @@ namespace ProjetoFinal
             double fimLN;
             double EixoPrincipal = BlocosAlma[0].Ycg;
             double he = 220; //receber valor como input
-            double te = 14; // espessura de um bloco qualquer
+            double te = BlocosAlma[0].espessura;
             double indesbeltez = he / te;
             double R = 0.939;
 
             List<TabelaResistencia> resistencias = new List<TabelaResistencia>(); // colunas fbk / fpk/ fpk*  //tabela resistencia referencia norma VALORES EM MPa
             resistencias.Add(new TabelaResistencia(3, 2.4, 4.8));
 
-            //definir fpk e fpkcheio / se usuario decidiu por usar referencia, procurar na tabela a partir do fbk se nao, pegar o valor inserido pelo usuario. dividindo por 10 passando para KN/cm²
-            double fpk = 9.8 / 10;
-            double fpkcheio = 15.7 / 10;
+            // Definindo fpk
+
+
+            double fpk = 0;
+            double fpkcheio = 0;
+
+            if (comboBox1.SelectedValue.ToString() != "Inserir valores")
+            {
+
+                ResistenciaBloco fpktab = TabRes.GetResistencia(Convert.ToDouble(comboBox1.SelectedValue.ToString()));
+                fpk = fpktab.Fpk;
+
+                ResistenciaBloco fpkcheiotab = TabRes.GetResistencia(Convert.ToDouble(comboBox1.SelectedValue.ToString()));
+                fpkcheio = fpkcheiotab.FpkCheio;
+
+            }
+            else
+            {
+                fpk = Convert.ToDouble(labelFpk.Text);
+                fpkcheio = Convert.ToDouble(labelFpkcheio.Text);
+            }
+
 
             #region COMO PEGAR RESISTENCIA
             double inputusuario = 4;//valor que virá do combobox na UI
@@ -287,6 +373,8 @@ namespace ProjetoFinal
                 }
                 //
             }
+
+
             #endregion
             PlotModel model = new PlotModel();
             model = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
@@ -300,19 +388,9 @@ namespace ProjetoFinal
             {
                 normal = Normal(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R);
                 momento = Momento(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R, Xcg);
-                ChuteLN= ChuteLN-10;
-
+                ChuteLN = ChuteLN - 1;
                 grafpontos.Points.Add(new ScatterPoint(normal, momento, 2));
             }
-
-
-            /*PlotModel a = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
-            ///a.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 *///});
-            ///*a.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
-            /*var grafpontos = new ScatterSeries();
-            grafpontos.Points.Add(new ScatterPoint(5, 5, 8));
-            a.Series.Add(grafpontos);
-            DataContext = this;*/
             List<Coordenada> teste = new List<Coordenada>();
             grafpontos.MarkerType = MarkerType.Circle;
             grafpontos.MarkerFill = OxyColors.Red;
@@ -320,8 +398,54 @@ namespace ProjetoFinal
             model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
             model.Series.Add(grafpontos);
             Grafica.Model = model;
-            
+            var lo = 0;
 
+            //Verificar armadura minima
+            if(text_normalatuante.Text.Length>0 || text_momentoatuante.Text.Length > 0)
+            {
+                VefificarArmaduraMinima();
+            }
+
+            void VefificarArmaduraMinima()
+            {
+                bool parede100 = true;
+                double normalresistente = 0;
+
+                double normalatuante = Convert.ToDouble(text_normalatuante.Text);
+                double momentoatuante = Convert.ToDouble(text_momentoatuante.Text);
+
+                foreach (Blocos bloco in BlocosAlma)
+                {
+                    if (!bloco.grauteado)
+                    {
+                        parede100 = false;
+                    }
+                }
+                foreach (Blocos bloco in BlocosFlange)
+                {
+                    if (!bloco.grauteado)
+                    {
+                        parede100 = false;
+                    }
+                }
+
+
+                if (parede100)
+                {
+                    normalresistente = fpkcheio * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - 2 * (momentoatuante / normalatuante));  // fd*B(h-2ex)
+                }
+                else
+                {
+                    normalresistente = fpk * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - 2 * (momentoatuante / normalatuante));
+                }
+
+                if (normalatuante < normalresistente)
+                {
+                text_armaduraminima.Text = "PASSA";}
+                else { 
+                text_armaduraminima.Text = "NÃO PASSA";}
+
+            }
 
             double Normal(List<Ferros> ferros, List<Blocos> alma, List<Blocos> flange, double reffimLN, double refInicioLN, double Xln, double eixoprincipal, double reffpkcheio, double reffpk, double refR)
             {   // MPa para KN/cm2 dividir por 10
@@ -333,7 +457,7 @@ namespace ProjetoFinal
                 double deformacaoescoamento = (fyk / 1.15) / Es; // fyd/Es                   
                 foreach (Ferros ferro in ferros)
                 {
-                    if (ferro.Xcg < Xln)
+                    if (ferro.Xcg < Xln && ((Math.Abs(ferro.Ycg - eixoprincipal)) - 7 < 84))
                     {
                         double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));  // compatibilização  (0.003 / x) = Ei / (di - x) 
 
@@ -585,5 +709,26 @@ namespace ProjetoFinal
                 return (SomaXi / Area + InicioLN);
             }
         }
+
+        private void labelFpk_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (labelFpk.Text.Contains("."))
+            {
+                System.Windows.MessageBox.Show("Utilizar vírgula ',' para números fracionados.");
+                labelFpk.Clear();
+            }
+        }
+
+        private void labelFpkcheio_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (labelFpkcheio.Text.Contains("."))
+            {
+                System.Windows.MessageBox.Show("Utilizar vírgula ',' para números fracionados.");
+                labelFpkcheio.Clear();
+            }
+
+        }
+
+   
     }
 }
