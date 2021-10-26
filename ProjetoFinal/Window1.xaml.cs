@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -147,13 +148,17 @@ namespace ProjetoFinal
             List<Blocos> BlocosFlange = new List<Blocos>();
             //List<Graute> ListaGraute = new List<Graute>();
             List<Ferros> ListaFerros = new List<Ferros>();
-
+            StringBuilder sb1 = new StringBuilder();
+            StringBuilder sb2 = new StringBuilder();
+            StringBuilder sbfinal = new StringBuilder();
+            /*File.WriteAllText(@"C:\testes\dados.txt", mensagem);*/
 
             int DirecaoVento = 0;
             switch (true)
             {
                 case true when checkBox1.IsChecked == true:
                     DirecaoVento = 1;
+                    
                     break;
                 case true when checkBox2.IsChecked == true:
                     DirecaoVento = 2;
@@ -180,9 +185,6 @@ namespace ProjetoFinal
                 {
                     AddFerro(elemento, DirecaoVento);
                 }
-                /*var location1 = elemento.Location as LocationPoint;
-                double m1 = location1.Point.X;
-                teste1 = elemento.Symbol.GetParameters("Comprimento")[0].AsDouble();*/
 
             };
 
@@ -248,7 +250,7 @@ namespace ProjetoFinal
             {
                 var location = elem.Location as LocationPoint;
                 double refbitola = elem.Symbol.GetParameters("Bitola")[0].AsDouble() * 30.48;
-                double refarea = Math.PI * refbitola * refbitola / 4 / 100;  //  PI*D²/4   cm²
+                double refarea = (Math.PI * refbitola * refbitola / 4) / 100;  //  PI*D²/4   cm²
                 double refXcg = 0;
                 double refYcg = 0;
                 switch (direcaovento)
@@ -277,10 +279,6 @@ namespace ProjetoFinal
                 ListaFerros.Add(new Ferros(refbitola, refXcg, refYcg, refarea));
             }
 
-            //var plottest = new PlotModel { Title = "TESTE" };
-            //plottest.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
-            //plottest.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
-
 
             #region Algoritmo de Cálculo
 
@@ -302,8 +300,7 @@ namespace ProjetoFinal
             double indesbeltez = he / te;
             double R = 0.939;
 
-            List<TabelaResistencia> resistencias = new List<TabelaResistencia>(); // colunas fbk / fpk/ fpk*  //tabela resistencia referencia norma VALORES EM MPa
-            resistencias.Add(new TabelaResistencia(3, 2.4, 4.8));
+  
 
             // Definindo fpk
 
@@ -315,16 +312,16 @@ namespace ProjetoFinal
             {
 
                 ResistenciaBloco fpktab = TabRes.GetResistencia(Convert.ToDouble(comboBox1.SelectedValue.ToString()));
-                fpk = fpktab.Fpk;
+                fpk = fpktab.Fpk/10; //divindo 10 passando Mpa Para kN.cm
 
                 ResistenciaBloco fpkcheiotab = TabRes.GetResistencia(Convert.ToDouble(comboBox1.SelectedValue.ToString()));
-                fpkcheio = fpkcheiotab.FpkCheio;
+                fpkcheio = fpkcheiotab.FpkCheio/10; //divindo 10 passando Mpa Para kN.cm
 
             }
             else
             {
-                fpk = Convert.ToDouble(labelFpk.Text);
-                fpkcheio = Convert.ToDouble(labelFpkcheio.Text);
+                fpk = Convert.ToDouble(labelFpk.Text)/10;
+                fpkcheio = Convert.ToDouble(labelFpkcheio.Text)/10;
             }
 
 
@@ -374,31 +371,47 @@ namespace ProjetoFinal
                 //
             }
 
-
+            bool ruptura;
             #endregion
             PlotModel model = new PlotModel();
             model = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
             var grafpontos = new ScatterSeries();
+            var grafpontosrompidos = new ScatterSeries();
             // Calculo dos pontos de momento e normal percorrendo a seção
             double normal, momento;
             double Xcg = CalcularCentroide(BlocosAlma, BlocosFlange, InicioLN);
             double ChuteLN = fimLN;  // colocando como start da ln o fim da seção , considerando assim partindo da parte toda tracionada até começo da seção considerando parte toda comprimida
             List<Coordenada> pontosgraficoresistencia = new List<Coordenada>();
+            InicioLN = fimLN - ((fimLN - InicioLN) / 0.8);
             while (ChuteLN >= InicioLN)
             {
                 normal = Normal(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R);
                 momento = Momento(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R, Xcg);
                 ChuteLN = ChuteLN - 1;
-                grafpontos.Points.Add(new ScatterPoint(normal, momento, 2));
+                if (!ruptura)
+                {
+                    grafpontos.Points.Add(new ScatterPoint(normal, momento, 2, 100,300));
+                }
+                else
+                {
+                    grafpontosrompidos.Points.Add(new ScatterPoint(normal, momento, 2, 350, 15));
+                }
+                
+                
+                sb1.Append( Math.Abs((ChuteLN-fimLN)).ToString()).Append(';').Append(normal.ToString()).Append(';').Append(momento.ToString()).Append(';').Append(sb2).Append(ruptura.ToString()).Append('\n');
+                
             }
             List<Coordenada> teste = new List<Coordenada>();
             grafpontos.MarkerType = MarkerType.Circle;
-            grafpontos.MarkerFill = OxyColors.Red;
+            grafpontosrompidos.MarkerType = MarkerType.Circle;
+            grafpontos.MarkerFill = OxyColors.Blue;
+            grafpontosrompidos.MarkerFill = OxyColors.Red;
             model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
             model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
             model.Series.Add(grafpontos);
+            model.Series.Add(grafpontosrompidos);
             Grafica.Model = model;
-            var lo = 0;
+           
 
             //Verificar armadura minima
             if(text_normalatuante.Text.Length>0 || text_momentoatuante.Text.Length > 0)
@@ -447,6 +460,11 @@ namespace ProjetoFinal
 
             }
 
+
+
+
+
+            
             double Normal(List<Ferros> ferros, List<Blocos> alma, List<Blocos> flange, double reffimLN, double refInicioLN, double Xln, double eixoprincipal, double reffpkcheio, double reffpk, double refR)
             {   // MPa para KN/cm2 dividir por 10
                 double tracao = 0;
@@ -454,7 +472,8 @@ namespace ProjetoFinal
                 double Xlc = Xln + Math.Abs(Xln - fimLN) * 0.2;
                 double Es = 21000; // KN/cm²  210000MPa
                 double fyk = 50; //KN/cm²     //500MPa
-                double deformacaoescoamento = (fyk / 1.15) / Es; // fyd/Es                   
+                double deformacaoescoamento = (fyk / 1.15) / Es; // fyd/Es
+                ruptura = false;
                 foreach (Ferros ferro in ferros)
                 {
                     if (ferro.Xcg < Xln && ((Math.Abs(ferro.Ycg - eixoprincipal)) - 7 < 84))
@@ -463,7 +482,7 @@ namespace ProjetoFinal
 
                         if (ei < deformacaoescoamento)
                         {   // compatibilização    (0.003 / x) = Ei / (di - x) 
-                            tracao += ferro.area / 1.15 * ei * Es * 0.5;   //(As/Gamas) * Ei* ES    //KN  (0.5 da norma)
+                            tracao += ferro.area/ 1.15 * ei * Es * 0.5;   //(As/Gamas) * Ei* ES    //KN  (0.5 da norma)
                         }
                         else if (ei >= deformacaoescoamento && ei < 0.01)
                         {
@@ -471,7 +490,8 @@ namespace ProjetoFinal
                         }
                         else if (ei > 0.01)
                         {
-                            // condição que ferro ruptura e nao é encontrado um valor de momento para este caso de LN.
+                            tracao += ferro.area * fyk / 1.15 * 0.5;
+                            ruptura = true;
                         }
                     }
                 }
@@ -578,27 +598,33 @@ namespace ProjetoFinal
                 double Xlc = Xln + Math.Abs(Xln - fimLN) * 0.2;
                 double Es = 21000; // kN/cm²
                 double fyk = 50; //kN/cm²
-                double defescoamento = (fyk / 1.15) / Es; // fyd/Es
-
+                double defescoamento = fyk / 1.15 / Es; // fyd/Es
+                sb2.Clear();
                 foreach (Ferros ferro in ferros)
                 {
+                    
                     if (ferro.Xcg < Xln)
                     {
                         double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));
                         if (ei < defescoamento)
                         {   // compatibilização    (0.003 / x) = Ei / (di - x) 
                             Mrd += ferro.area / 1.15 * ei * Es * 0.5 * (Xcg - ferro.Xcg);   //(As/Gamas) * Ei* ES * di //Valor em KN*cm
+                            sb2.Append(ei.ToString()).Append(";").Append(Math.Abs(fimLN - Xln)).Append(";").Append(Math.Abs(Xln - ferro.Xcg)).Append(";");
                         }
                         else if (ei > defescoamento && ei < 0.01)
                         {
                             Mrd += ferro.area * fyk / 1.15 * 0.5 * (Xcg - ferro.Xcg);  //(As/Gamas) * fyk * di
+                            sb2.Append(ei.ToString()).Append(";").Append(Math.Abs(fimLN - Xln)).Append(";").Append(Math.Abs(Xln - ferro.Xcg)).Append(";");
                         }
                         else
                         {
+                            Mrd += ferro.area * fyk / 1.15 * 0.5 * (Xcg - ferro.Xcg);
                             // condição que ferro ruptura e nao é encontrado um valor de momento para este caso de LN.
+                            sb2.Append("RUPTURA").Append(";").Append(Math.Abs(fimLN - Xln)).Append(";").Append(Math.Abs(Xln - ferro.Xcg)).Append(";");
                         }
                     }
                 }
+                
                 foreach (Blocos bloco in alma)
                 {
                     if ((bloco.Xcg - bloco.comprimento / 2) > Xlc)
@@ -708,6 +734,9 @@ namespace ProjetoFinal
                 }
                 return (SomaXi / Area + InicioLN);
             }
+            File.WriteAllText(@"C:\testes\dados.txt", sb1.ToString());
+
+
         }
 
         private void labelFpk_TextChanged(object sender, TextChangedEventArgs e)
