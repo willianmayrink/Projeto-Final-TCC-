@@ -32,7 +32,7 @@ namespace ProjetoFinal
         {
             try
             {
-                #region Input e tratamento dos dados de entrada
+                
 
                 UIApplication uiapp = commandData.Application;
                 Document doc = uiapp.ActiveUIDocument.Document;
@@ -40,8 +40,7 @@ namespace ProjetoFinal
 
                 
                 Autodesk.Revit.UI.Selection.Selection sel = uiapp.ActiveUIDocument.Selection;
-                List<Reference> selElements = sel.PickObjects(ObjectType.Element).ToList(); // Pegando os elementos e armazenando em uma lista
-
+                List<Reference> selElements = sel.PickObjects(ObjectType.Element).ToList();  // Inicia o plugin e pede os valores de entrada, no caso os elementos da subestrutrura.
 
                 var modelo = new Window1(doc, selElements);
                 modelo.ShowDialog();
@@ -57,6 +56,8 @@ namespace ProjetoFinal
 
         }
 
+        #region CALCULAR Ix
+        // codigo calcular Ix  ( NUNCA UTILIZADO, SOMENTE SE UM DIA PRECISAR)
         /*public double CalcularIx(List<Blocos> alma, List<Blocos> flange, double InicioLN, double eixoprincipal, double Xcg) //entrar com lista de blocos e Xcg //Fazer pros casos da flange ser menor que 6*t
         { // adicionar parametro de entrada Xcg que é o valaor calculado na função calcularcentroide
             double Ix = 0; //Iy =  Iycg + A* Xcg²

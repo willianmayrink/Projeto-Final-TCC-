@@ -15,7 +15,7 @@ namespace ProjetoFinal
         public double orientacao;
         public double area;
         public bool grauteado;
-        public Blocos(double refcomprimento, double refespessura, double refXcg, double refYcg, double reforientacao, double refarea, string refgrauteado)
+        public Blocos(double refcomprimento, double refespessura, double refXcg, double refYcg, double reforientacao, double refarea, bool refgrauteado)
         {
             comprimento = refcomprimento;
             espessura = refespessura;
@@ -23,18 +23,11 @@ namespace ProjetoFinal
             Ycg = refYcg;
             orientacao = reforientacao;
             area = refarea;
+            grauteado = refgrauteado;
 
-            if (refgrauteado == "Yes")
-            {
-                grauteado = true;
-
-            }
-            else if (refgrauteado == "No")
-            {
-                grauteado = false;
-            }
         }
     }
+
     public class Ferros
     {
         public double bitola;

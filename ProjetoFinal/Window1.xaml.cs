@@ -30,20 +30,6 @@ namespace ProjetoFinal
 
         public Document Document { get; set; }       
 
-        public Window1()
-        {
-
-            InitializeComponent();
-            // Gráfico apenas representativo para quando iniciar a para inicilizar a janela
-            PlotModel model = new PlotModel() { Title = "Gráfico resistência Momento x Normal" }; ;
-            model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom });
-            model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left});
-            var grafpontos = new ScatterSeries();
-            grafpontos.Points.Add(new ScatterPoint(40, 40, 0)); // ponto com tamanho 0, para conter ao menos um dado e plotar o grafico representativo.
-            model.Series.Add(grafpontos);
-            Grafica.Model = model;
-        }
-
         public Window1(Document doc, List<Reference> selElements)
         {
             Document = doc;
@@ -51,16 +37,13 @@ namespace ProjetoFinal
             DataContext = this;
             InitializeComponent();
 
-    
+            // criando gráfico apenas representativo para quando abrir a janela.
             PlotModel model = new PlotModel();
-
             model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
             model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
-            model = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
-
+            model = new PlotModel { Title = "Gráfico resistência Normal x Momento" };
             var grafpontos = new ScatterSeries();
             grafpontos.Points.Add(new ScatterPoint(40, 40, 0));
-
             model.Series.Add(grafpontos);
             Grafica.Model = model;
             
@@ -142,23 +125,19 @@ namespace ProjetoFinal
 
         private void btnCalcular_Click(object sender, RoutedEventArgs e)
         {
-            //abrir janela para entrar com valores de input
-
-            List<Blocos> BlocosAlma = new List<Blocos>();
-            List<Blocos> BlocosFlange = new List<Blocos>();
-            //List<Graute> ListaGraute = new List<Graute>();
-            List<Ferros> ListaFerros = new List<Ferros>();
+            
             StringBuilder sb1 = new StringBuilder();
             StringBuilder sb2 = new StringBuilder();
+            StringBuilder dadosgerais = new StringBuilder();
             StringBuilder sbfinal = new StringBuilder();
-            /*File.WriteAllText(@"C:\testes\dados.txt", mensagem);*/
+            StringBuilder dadosNormal = new StringBuilder();
+
 
             int DirecaoVento = 0;
             switch (true)
             {
                 case true when checkBox1.IsChecked == true:
                     DirecaoVento = 1;
-                    
                     break;
                 case true when checkBox2.IsChecked == true:
                     DirecaoVento = 2;
@@ -171,8 +150,14 @@ namespace ProjetoFinal
                     break;
             }
 
+            #region TRATANDO OS DADOS DE ENTRADA
 
-            foreach (Reference refelem in SelElements) //Trabalhando com os dados de input, referenciando cada elemento na sua devida lista
+            // ordenando e agrupando os dados de entrada de acordo com o tipo de elemento e suas propriedades para cada instância de elemento do revit.
+            List<Blocos> BlocosAlma = new List<Blocos>();
+            List<Blocos> BlocosFlange = new List<Blocos>();
+            List<Ferros> ListaFerros = new List<Ferros>();
+
+            foreach (Reference refelem in SelElements) // Adicionando cada tipo de elemento em sua determinada lista
             {
                 Element auxelem = Document.GetElement(refelem);
                 var elemento = auxelem as FamilyInstance;
@@ -197,29 +182,26 @@ namespace ProjetoFinal
                 double refYcg = 0;
                 switch (direcaovento)
                 {
-
                     case 1:
-                        refXcg = location.Point.Y * 30.48;
-                        refYcg = location.Point.X * 30.48;
+                        refXcg =  location.Point.Y * 30.48;
+                        refYcg =  location.Point.X * 30.48;
                         break;
 
                     case 2:
-                        refXcg = location.Point.X * 30.48;
-                        refYcg = location.Point.Y * 30.48;
+                        refXcg =  location.Point.X * 30.48;
+                        refYcg =  location.Point.Y * 30.48;
                         break;
 
                     case 3:
                         refXcg = -location.Point.X * 30.48;
-                        refYcg = location.Point.Y * 30.48;
+                        refYcg =  location.Point.Y * 30.48;
                         break;
 
                     case 4:
                         refXcg = -location.Point.Y * 30.48;
-                        refYcg = location.Point.X * 30.48;
+                        refYcg =  location.Point.X * 30.48;
                         break;
                 }
-                /*double refXcg = location.Point.X * 30.48;
-                double refYcg = location.Point.Y * 30.48;*/
 
                 double reforientacao = 0;
                 if (DirecaoVento == 1 || DirecaoVento == 4) {
@@ -229,12 +211,9 @@ namespace ProjetoFinal
                     reforientacao = Math.Round(location.Rotation / Math.PI, 6);
                 }
 
-
-
                 double refarea = refcomprimento * refespessura;
-                string refgrauteado = elem.GetParameters("grauteado")[0].AsValueString();
-                //string refgrauteado = elem
-
+                //string refgrauteado = elem.GetParameters("grauteado")[0].AsValueString();
+                bool refgrauteado = Convert.ToBoolean(elem.GetParameters("grauteado")[0].AsInteger());
 
                 if (reforientacao == 0.5 || reforientacao == 1.5 || reforientacao == 2.5)
                 {
@@ -280,8 +259,6 @@ namespace ProjetoFinal
             }
 
 
-            #region Algoritmo de Cálculo
-
             if (BlocosAlma.Count == 0)
             {
                 TaskDialog.Show("ERRO", "Selecione os elementos");
@@ -291,39 +268,32 @@ namespace ProjetoFinal
             BlocosAlma = BlocosAlma.OrderBy(m => m.Xcg).ToList();
             BlocosFlange = BlocosFlange.OrderBy(m => m.Xcg).ToList();
 
-            //depois de ordenado tudo, começa esse passo do codigo
-            double InicioLN; //encontrando o ponto de inicio e fim chute LN
-            double fimLN;
-            double EixoPrincipal = BlocosAlma[0].Ycg;
-            double he = 220; //receber valor como input
-            double te = BlocosAlma[0].espessura;
-            double indesbeltez = he / te;
-            double R = 0.939;
+            #endregion
 
-  
+            #region DEFININDO FPK
 
-            // Definindo fpk
-
-
-            double fpk = 0;
-            double fpkcheio = 0;
+            double fpk;
+            double fpkcheio;
 
             if (comboBox1.SelectedValue.ToString() != "Inserir valores")
             {
 
                 ResistenciaBloco fpktab = TabRes.GetResistencia(Convert.ToDouble(comboBox1.SelectedValue.ToString()));
-                fpk = fpktab.Fpk/10; //divindo 10 passando Mpa Para kN.cm
-
+                fpk = fpktab.Fpk/10; //divindo 10 passando Mpa Para kN/cm²
+                    
                 ResistenciaBloco fpkcheiotab = TabRes.GetResistencia(Convert.ToDouble(comboBox1.SelectedValue.ToString()));
-                fpkcheio = fpkcheiotab.FpkCheio/10; //divindo 10 passando Mpa Para kN.cm
-
+                fpkcheio = fpkcheiotab.FpkCheio/10; //divindo 10 passando Mpa Para kN/cm²
+                dadosgerais.Append("Fbk:").Append(comboBox1.SelectedValue.ToString()).Append(" Mpa\n");
             }
             else
             {
                 fpk = Convert.ToDouble(labelFpk.Text)/10;
                 fpkcheio = Convert.ToDouble(labelFpkcheio.Text)/10;
+                dadosgerais.Append("Fbk: -").Append('\n');
             }
+            dadosgerais.Append("Fpk: ").Append((fpk*10).ToString()).Append(" Mpa\n").Append("Fpk*: ").Append((fpkcheio*10).ToString()).Append(" Mpa\n");
 
+            #endregion
 
             #region COMO PEGAR RESISTENCIA
             double inputusuario = 4;//valor que virá do combobox na UI
@@ -335,8 +305,19 @@ namespace ProjetoFinal
             //O método GetResistencia devolve o struct "Resistencia Bloco". Esse método será usado com o vlor que o usuario escolher de input
             #endregion
 
+            #region INICIO E FIM DA SEÇÃO
+            // Encontrando Inicio e Fim da Seção
 
-            // Encontrando Inicio e Fim da LN
+            double InicioLN;
+            double fimLN;
+            double EixoPrincipal = BlocosAlma[0].Ycg;
+            double he = 220; //receber valor como input
+            double te = BlocosAlma[0].espessura;
+            double indesbeltez = he / te;
+            double R = 0.939;
+            dadosgerais.Append("====================  DADOS GERAIS  ====================\n").Append('\n');
+            dadosgerais.Append("Altura efetiva: ").Append(he.ToString()).Append(" cm\n").Append("R: ").Append(R.ToString()).Append('\n').Append("Indice Esbeltez (λ): ").Append(R.ToString()).Append('\n');
+
 
             if (BlocosFlange.Count == 0)
             {
@@ -370,24 +351,30 @@ namespace ProjetoFinal
                 }
                 //
             }
+            dadosgerais.Append("Comprimento Subestrutura: ").Append((fimLN-InicioLN).ToString()).Append('\n');
+            #endregion
+
+
+
+            PlotModel model = new PlotModel() { Title = "Gráfico resistência Normal x  Momento" };
+            var grafpontos = new ScatterSeries();
+            var grafpontosrompidos= new ScatterSeries();
+            var pontoentrada = new ScatterSeries();
 
             bool ruptura;
-            #endregion
-            PlotModel model = new PlotModel();
-            model = new PlotModel { Title = "Gráfico resistência Momento x Normal" };
-            var grafpontos = new ScatterSeries();
-            var grafpontosrompidos = new ScatterSeries();
-            // Calculo dos pontos de momento e normal percorrendo a seção
-            double normal, momento;
             double Xcg = CalcularCentroide(BlocosAlma, BlocosFlange, InicioLN);
             double ChuteLN = fimLN;  // colocando como start da ln o fim da seção , considerando assim partindo da parte toda tracionada até começo da seção considerando parte toda comprimida
-            List<Coordenada> pontosgraficoresistencia = new List<Coordenada>();
-            InicioLN = fimLN - ((fimLN - InicioLN) / 0.8);
-            while (ChuteLN >= InicioLN)
+            double normal,momento,FimChuteLN;
+            FimChuteLN= fimLN - ((fimLN - InicioLN) / 0.8);
+            dadosgerais.Append("Centroide: ").Append((fimLN - Xcg).ToString()).Append('\n');
+   
+            sb1.Append("Normal (kN)").Append(';').Append("Momento (kN.m)").Append(';').Append("Dist. LN (x)").Append(';').Append("Dist. Comp. (0.8 x)").Append(';').Append("σ (kN/cm²) ").Append(';').Append("ε").Append(';').Append("Contribuição (kN.m)").Append(';').Append('\n');
+            double parcial;
+            while (ChuteLN >= FimChuteLN)
             {
                 normal = Normal(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R);
                 momento = Momento(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R, Xcg);
-                ChuteLN = ChuteLN - 1;
+                
                 if (!ruptura)
                 {
                     grafpontos.Points.Add(new ScatterPoint(normal, momento, 2, 100,300));
@@ -396,30 +383,26 @@ namespace ProjetoFinal
                 {
                     grafpontosrompidos.Points.Add(new ScatterPoint(normal, momento, 2, 350, 15));
                 }
-                
-                
-                sb1.Append( Math.Abs((ChuteLN-fimLN)).ToString()).Append(';').Append(normal.ToString()).Append(';').Append(momento.ToString()).Append(';').Append(sb2).Append(ruptura.ToString()).Append('\n');
-                
-            }
-            List<Coordenada> teste = new List<Coordenada>();
-            grafpontos.MarkerType = MarkerType.Circle;
-            grafpontosrompidos.MarkerType = MarkerType.Circle;
-            grafpontos.MarkerFill = OxyColors.Blue;
-            grafpontosrompidos.MarkerFill = OxyColors.Red;
-            model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
-            model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
-            model.Series.Add(grafpontos);
-            model.Series.Add(grafpontosrompidos);
-            Grafica.Model = model;
-           
 
-            //Verificar armadura minima
-            if(text_normalatuante.Text.Length>0 || text_momentoatuante.Text.Length > 0)
+
+                sb1.Append(normal.ToString()).Append(';').Append(momento.ToString()).Append(';').Append(Math.Abs((ChuteLN - fimLN)).ToString()).Append(';').Append(sb2).Append('\n');//.Append(ruptura.ToString()).Append('\n');
+                ChuteLN = ChuteLN - 1;
+                dadosNormal.Append('\n');
+            }
+
+
+            #region VERIFICANDO ARMADURA MÍNIMA E COMPRESSÃO SIMPLES
+
+            if (text_normalatuante.Text.Length > 0 || text_momentoatuante.Text.Length > 0)
             {
-                VefificarArmaduraMinima();
+                VerificarArmaduraMinima();
+            }
+            else
+            {
+                text_armaduraminima.Clear();
             }
 
-            void VefificarArmaduraMinima()
+            void VerificarArmaduraMinima()
             {
                 bool parede100 = true;
                 double normalresistente = 0;
@@ -445,26 +428,51 @@ namespace ProjetoFinal
 
                 if (parede100)
                 {
-                    normalresistente = fpkcheio * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - 2 * (momentoatuante / normalatuante));  // fd*B(h-2ex)
+                    normalresistente = fpkcheio * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - (2 * (momentoatuante / normalatuante)));  // fd*B(h-2ex)
+
                 }
                 else
                 {
-                    normalresistente = fpk * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - 2 * (momentoatuante / normalatuante));
+                    normalresistente = fpk * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - ( 2 * (momentoatuante / normalatuante)*100));
                 }
-
-                if (normalatuante < normalresistente)
+                StringBuilder sb3 = new StringBuilder();
+                sb3.Append(Math.Abs(fimLN - InicioLN).ToString()).Append(';');
+                sb3.Append((momentoatuante / normalatuante).ToString()).Append(';');
+                sb3.Append(fpk.ToString()).Append(';');
+                sb3.Append(normalresistente.ToString()).Append(';');
+                File.WriteAllText(@"C:\testes\normalresiste.txt", sb3.ToString());
+                if (normalatuante < normalresistente  && (momentoatuante / normalatuante) < (0.5 * Math.Abs(fimLN - InicioLN)) )// Nd<Nrd   e  e<0.5h 
                 {
                 text_armaduraminima.Text = "PASSA";}
                 else { 
                 text_armaduraminima.Text = "NÃO PASSA";}
-
+                pontoentrada.Points.Add(new ScatterPoint(normalatuante, momentoatuante, 8));
+                pontoentrada.MarkerType = MarkerType.Triangle;
+                pontoentrada.MarkerFill = OxyColors.Green;
+                model.Series.Add(pontoentrada);
             }
 
+            #endregion
+
+            #region CRIANDO GRÁFICOS E TXT'S
+         
+            grafpontos.MarkerType = MarkerType.Circle;
+            grafpontosrompidos.MarkerType = MarkerType.Circle;
+            grafpontos.MarkerFill = OxyColors.Blue;
+            grafpontosrompidos.MarkerFill = OxyColors.Red;
+            model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
+            model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
+            model.Series.Add(grafpontos);
+            model.Series.Add(grafpontosrompidos);
+            Grafica.Model = model;
+
+            // criando os txt's
+            File.WriteAllText(@"C:\testes\Dados Iterativos.txt", sb1.ToString());
+            File.WriteAllText(@"C:\testes\Dados Gerais.txt", dadosgerais.ToString());
+            File.WriteAllText(@"C:\testes\Dados normal.txt", dadosNormal.ToString());
+            #endregion
 
 
-
-
-            
             double Normal(List<Ferros> ferros, List<Blocos> alma, List<Blocos> flange, double reffimLN, double refInicioLN, double Xln, double eixoprincipal, double reffpkcheio, double reffpk, double refR)
             {   // MPa para KN/cm2 dividir por 10
                 double tracao = 0;
@@ -474,54 +482,91 @@ namespace ProjetoFinal
                 double fyk = 50; //KN/cm²     //500MPa
                 double deformacaoescoamento = (fyk / 1.15) / Es; // fyd/Es
                 ruptura = false;
+                double aux=0;
+                dadosNormal.Append((fimLN - Xln).ToString()).Append(';').Append( (fimLN-Xlc).ToString()).Append(';').Append(fimLN.ToString()).Append(';');
                 foreach (Ferros ferro in ferros)
                 {
-                    if (ferro.Xcg < Xln && ((Math.Abs(ferro.Ycg - eixoprincipal)) - 7 < 84))
+                    if (ferro.Xcg < Xln)
                     {
                         double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));  // compatibilização  (0.003 / x) = Ei / (di - x) 
 
                         if (ei < deformacaoescoamento)
                         {   // compatibilização    (0.003 / x) = Ei / (di - x) 
-                            tracao += ferro.area/ 1.15 * ei * Es * 0.5;   //(As/Gamas) * Ei* ES    //KN  (0.5 da norma)
+                            tracao += ferro.area/ 1.15 * ei * Es;   //(As/Gamas) * Ei* ES    //KN  (0.5 da norma)
+                            aux = ferro.area / 1.15 * ei * Es;
                         }
                         else if (ei >= deformacaoescoamento && ei < 0.01)
                         {
-                            tracao += ferro.area * fyk / 1.15 * 0.5;   // (As/Gamas) * fyk * 0.5       (0.5 da norma) // KN/cm²
+                            tracao += ferro.area * fyk / 1.15 ;   // (As/Gamas) * fyk * 0.5       (0.5 da norma) // KN/cm²
+                            aux = ferro.area * fyk / 1.15;
                         }
                         else if (ei > 0.01)
                         {
-                            tracao += ferro.area * fyk / 1.15 * 0.5;
+                            tracao += ferro.area * fyk / 1.15 ;
+                            aux = ferro.area * fyk / 1.15;
                             ruptura = true;
                         }
+                        //dadosNormal.Append(aux.ToString()).Append(';') ;
                     }
                 }
 
+             
                 foreach (Blocos bloco in alma)
                 {
-                    if ((bloco.Xcg - bloco.comprimento / 2) > Xlc)
+                    //dadosNormal.Append((bloco.Xcg - (bloco.comprimento / 2)).ToString()).Append(';').Append(Xlc.ToString()).Append(';').Append(bloco.Xcg.ToString()).Append(';').Append(bloco.comprimento.ToString()).Append(';');
+                    
+                    if ((bloco.Xcg - (bloco.comprimento / 2)) >= Xlc)
                     {
                         //Bloco inteiro entra na contribuição, ai só analisar % de graute, sua resistencia e multiplicar pelo comprimento
+
+                        /*if(numerograutes ==0){
+                         
+                         }
+                        else if (numerograutes == numerodefuros){
+
+                        }
+
+                        else{
+                        fpkparcial= (areabloco* (numerodegraute/numerodefuros)* fpkcheio + areabloco * (1-(numerodegraute/numerodefuros))* fpk )/ (areabloco)
+                        
+                         }
+                         */
+                        
+                        
+
                         if (bloco.grauteado)
                         {
-                            compressao += (fpkcheio * 0.7) / 2.0 * bloco.area * R;
+                            compressao += fpkcheio * 0.7 / 2.0 * bloco.area;
+                            parcial= fpkcheio * 0.7 / 2.0 * bloco.area;
+                            dadosNormal.Append(parcial.ToString()).Append(';').Append(bloco.grauteado.ToString()).Append(';');
                         }
                         else
                         {
-                            compressao += (fpk * 0.7) / 2.0 * bloco.area * R;
+                            compressao += fpk * 0.7 / 2.0 * bloco.area ;
+                            parcial= fpk * 0.7 / 2.0 * bloco.area;
+                            dadosNormal.Append(parcial.ToString()).Append(';').Append(bloco.grauteado.ToString()).Append(';');
                         }
 
                     }
+
                     else if (((bloco.Xcg - bloco.comprimento / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.comprimento / 2)))
                     {
+                        
+
                         if (bloco.grauteado)
                         {
-                            compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R;
+                            compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) ;
+                            parcial= (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura);
+                            dadosNormal.Append(parcial.ToString()).Append(';').Append(bloco.grauteado.ToString()).Append(';');
                         }
                         else
                         {
-                            compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R;
+                            compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) ;
+                            parcial=(fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura);
+                            dadosNormal.Append(parcial.ToString()).Append(';').Append(bloco.grauteado.ToString()).Append(';');
                         }
                     }
+                   
 
                 }
 
@@ -529,17 +574,17 @@ namespace ProjetoFinal
                 foreach (Blocos bloco in flange)
                 {
 
-                    if ((bloco.Xcg - bloco.espessura / 2) > Xlc) // entra toda espessura do bloco na contribuição
+                    if ((bloco.Xcg - bloco.espessura / 2) >= Xlc) // entra toda espessura do bloco na contribuição
                     {
                         if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
                         {
                             if (bloco.grauteado)
                             {
-                                compressao += (fpkcheio * 0.7) / 2.0 * bloco.area * R;
+                                compressao += (fpkcheio * 0.7) / 2.0 * bloco.area ;
                             }
                             else
                             {
-                                compressao += (fpk * 0.7) / 2.0 * bloco.area * R;
+                                compressao += (fpk * 0.7) / 2.0 * bloco.area ;
                             }
 
                         }
@@ -548,11 +593,11 @@ namespace ProjetoFinal
                             //entra o comprimento parcial do bloco na conta 
                             if (bloco.grauteado)
                             {
-                                compressao += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R;
+                                compressao += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) ;
                             }
                             else
                             {
-                                compressao += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R;
+                                compressao += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) ;
                             }
                         }
 
@@ -565,11 +610,11 @@ namespace ProjetoFinal
                             //entra contribuição do comprimento inteiro, mas só uma parte da espessura
                             if (bloco.grauteado)
                             {
-                                compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R;
+                                compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) ;
                             }
                             else
                             {
-                                compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R;
+                                compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) ;
                             }
                         }
                         else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
@@ -577,11 +622,11 @@ namespace ProjetoFinal
                             //entra o comprimento parcial do bloco na conta e também uma espessura parcial
                             if (bloco.grauteado)
                             {
-                                compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R;
+                                compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) ;
                             }
                             else
                             {
-                                compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R;
+                                compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2)));
                             }
                         }
 
@@ -600,6 +645,8 @@ namespace ProjetoFinal
                 double fyk = 50; //kN/cm²
                 double defescoamento = fyk / 1.15 / Es; // fyd/Es
                 sb2.Clear();
+                sb2.Append((reffimLN - Xlc).ToString()).Append(";");
+                
                 foreach (Ferros ferro in ferros)
                 {
                     
@@ -608,35 +655,38 @@ namespace ProjetoFinal
                         double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));
                         if (ei < defescoamento)
                         {   // compatibilização    (0.003 / x) = Ei / (di - x) 
-                            Mrd += ferro.area / 1.15 * ei * Es * 0.5 * (Xcg - ferro.Xcg);   //(As/Gamas) * Ei* ES * di //Valor em KN*cm
-                            sb2.Append(ei.ToString()).Append(";").Append(Math.Abs(fimLN - Xln)).Append(";").Append(Math.Abs(Xln - ferro.Xcg)).Append(";");
+                            Mrd += ferro.area / 1.15 * ei * Es * (Xcg - ferro.Xcg);   //(As/Gamas) * Ei* ES * di //Valor em KN*cm
+                            parcial = ferro.area / 1.15 * ei * Es  * (Xcg - ferro.Xcg);   //(As/Gamas) * fyk * di
+                            sb2.Append((ei * Es).ToString()).Append(";").Append(ei.ToString()).Append(";").Append((parcial/100).ToString()).Append(";"); ;
                         }
                         else if (ei > defescoamento && ei < 0.01)
                         {
-                            Mrd += ferro.area * fyk / 1.15 * 0.5 * (Xcg - ferro.Xcg);  //(As/Gamas) * fyk * di
-                            sb2.Append(ei.ToString()).Append(";").Append(Math.Abs(fimLN - Xln)).Append(";").Append(Math.Abs(Xln - ferro.Xcg)).Append(";");
+                            Mrd += ferro.area * fyk / 1.15  * (Xcg - ferro.Xcg);  //(As/Gamas) * fyk * di
+                            parcial= ferro.area * fyk / 1.15  * (Xcg - ferro.Xcg);  //(As/Gamas) * fyk * di
+                            sb2.Append((fyk/1.15).ToString()).Append(";").Append(ei.ToString()).Append(";").Append((parcial/100).ToString()).Append(";");
                         }
                         else
                         {
-                            Mrd += ferro.area * fyk / 1.15 * 0.5 * (Xcg - ferro.Xcg);
+                            Mrd += ferro.area * fyk / 1.15  * (Xcg - ferro.Xcg);
+                            parcial = ferro.area * fyk / 1.15  * (Xcg - ferro.Xcg);  //(As/Gamas) * fyk * di
                             // condição que ferro ruptura e nao é encontrado um valor de momento para este caso de LN.
-                            sb2.Append("RUPTURA").Append(";").Append(Math.Abs(fimLN - Xln)).Append(";").Append(Math.Abs(Xln - ferro.Xcg)).Append(";");
+                            sb2.Append("RUPTURA").Append(";").Append(ei.ToString()).Append(";").Append((parcial/100).ToString()).Append(";");
                         }
                     }
                 }
                 
                 foreach (Blocos bloco in alma)
                 {
-                    if ((bloco.Xcg - bloco.comprimento / 2) > Xlc)
+                    if ((bloco.Xcg - bloco.comprimento / 2) >= Xlc)
                     {   //Bloco inteiro entra na contribuição, ai só analisar % de graute, sua resistencia e multiplicar pelo comprimento
 
                         if (bloco.grauteado)
                         {
-                            Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg); // Fd= fpk* 0.7 / 2 * A * R * Di  //Valor em KN*cm
+                            Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area  * (bloco.Xcg - Xcg); // Fd= fpk* 0.7 / 2 * A * R * Di  //Valor em KN*cm
                         }
                         else
                         {
-                            Mrd += (fpk * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg);
+                            Mrd += (fpk * 0.7) / 2.0 * bloco.area  * (bloco.Xcg - Xcg);
                         }
 
                     }
@@ -644,28 +694,28 @@ namespace ProjetoFinal
                     {
                         if (bloco.grauteado)
                         {
-                            Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
+                            Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura)  * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
                         }
                         else
                         {
-                            Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * R * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
+                            Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
                         }
                     }
                 }
                 foreach (Blocos bloco in flange)
                 {
 
-                    if ((bloco.Xcg - bloco.espessura / 2) > Xlc) // entra toda espessura do bloco na contribuição
+                    if ((bloco.Xcg - bloco.espessura / 2) >= Xlc) // entra toda espessura do bloco na contribuição
                     {
                         if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
                         {
                             if (bloco.grauteado)
                             {
-                                Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg);
+                                Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area  * (bloco.Xcg - Xcg);
                             }
                             else
                             {
-                                Mrd += (fpk * 0.7) / 2.0 * bloco.area * R * (bloco.Xcg - Xcg);
+                                Mrd += (fpk * 0.7) / 2.0 * bloco.area  * (bloco.Xcg - Xcg);
                             }
 
                         }
@@ -674,16 +724,16 @@ namespace ProjetoFinal
                             //entra o comprimento parcial do bloco na conta // Considerar parte nao grauteada
                             if (bloco.grauteado)
                             {
-                                Mrd += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R * (bloco.Xcg - Xcg);
+                                Mrd += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14)  * (bloco.Xcg - Xcg);
                             }
                             else
                             {
-                                Mrd += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * R * (bloco.Xcg - Xcg);
+                                Mrd += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * (bloco.Xcg - Xcg);
                             }
                         }
 
                     }
-                    else if (((bloco.Xcg - bloco.espessura / 2) < Xlc) & (Xlc < (bloco.Xcg + bloco.espessura / 2))) // entra uma parte da espessura do bloco
+                    else if (((bloco.Xcg - bloco.espessura / 2) <= Xlc) & (Xlc < (bloco.Xcg + bloco.espessura / 2))) // entra uma parte da espessura do bloco
                     {
                         if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
                         {
@@ -691,11 +741,11 @@ namespace ProjetoFinal
                             //entra contribuição do comprimento inteiro, mas só uma parte da espessura, ver como calcular...
                             if (bloco.grauteado)
                             {
-                                Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                                Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
                             }
                             else
                             {
-                                Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                                Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento)  * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
                             }
                         }
                         else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
@@ -704,11 +754,11 @@ namespace ProjetoFinal
                             // considerar como nao grauteado
                             if (bloco.grauteado)
                             {
-                                Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                                Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
                             }
                             else
                             {
-                                Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) * R * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                                Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2)))  * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
                             }
                         }
                     }
@@ -734,8 +784,8 @@ namespace ProjetoFinal
                 }
                 return (SomaXi / Area + InicioLN);
             }
-            File.WriteAllText(@"C:\testes\dados.txt", sb1.ToString());
 
+           
 
         }
 

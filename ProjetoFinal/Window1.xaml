@@ -34,7 +34,7 @@
 
 
 
-        <Button x:Name="btnCalcular" Content="Calcular" Margin="56,11,0,0" Grid.Row="3" HorizontalAlignment="Left" Width="104" Height="21" VerticalAlignment="Top" Click="btnCalcular_Click"/>
+        <Button x:Name="btnCalcular" Content="Calcular" Margin="56,16,0,0" Grid.Row="3" HorizontalAlignment="Left" Width="104" Height="21" VerticalAlignment="Top" Click="btnCalcular_Click"/>
         <ComboBox x:Name="comboBox1" HorizontalAlignment="Left" Height="20" Margin="40,26,0,0" VerticalAlignment="Top" Width="92" Loaded="comboBox1_Loaded" SelectionChanged="comboBox1_SelectionChanged"/>
         <CheckBox x:Name="checkBox4" Content="" Margin="21,36,0,30" Grid.Row="1" HorizontalAlignment="Left" Width="15" Click="checkBox4_Click"/>
         <Label Content="Fbk" Height="28" Margin="4,22,251,0" VerticalAlignment="Top"/>
@@ -44,7 +44,7 @@
         <Label Content="Fpk*" HorizontalAlignment="Left" Height="28" Margin="5,94,0,0" VerticalAlignment="Top" Width="33"/>
         <Label Content="MPa" Height="28" Margin="131,59,67,0" VerticalAlignment="Top"/>
         <Label Content="MPa" Height="28" Margin="132,93,66,0" VerticalAlignment="Top"/>
-        <Label Content="Altura da parede" Margin="4,73,0,38" Grid.Row="2" HorizontalAlignment="Left" Width="99"/>
+        <Label Content="Altura da parede" Margin="2,52,0,59" Grid.Row="2" HorizontalAlignment="Left" Width="99"/>
         <Label Content="Direção do vento" Margin="5,123,0,41" HorizontalAlignment="Left" Width="134"/>
         <TextBlock Text="➔" RenderTransformOrigin="0.759,0.794" Margin="46,186,0,13" Foreground="Black" FontSize="16" HorizontalAlignment="Left" Width="16" />
         <CheckBox x:Name="checkBox1" Content="" Margin="21,161,0,43" HorizontalAlignment="Left" Width="15" Click="checkBox1_Click_1" IsChecked="True"/>
@@ -59,8 +59,8 @@
             </CheckBox.RenderTransform>
         </CheckBox>
         <CheckBox x:Name="checkBox3" Content="&#x9;" Margin="21,227,0,59" HorizontalAlignment="Left" Width="18" Click="checkBox3_Click" Grid.RowSpan="2"/>
-        <TextBox Margin="104,74,0,59" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="51"/>
-        <Label Content="cm" HorizontalAlignment="Left" Margin="156,75,0,39" Width="29" Grid.Row="2"/>
+        <TextBox Margin="107,53,0,80" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="51"/>
+        <Label Content="cm" HorizontalAlignment="Left" Margin="161,54,0,60" Width="29" Grid.Row="2"/>
         <TextBlock FontSize="16" FontWeight="Light" FontFamily="Segoe UI" RenderTransformOrigin="0.5,0.5" 
                                        Text="➔" Margin="48,153,0,44" Foreground="Black" HorizontalAlignment="Left" Width="20">
             <TextBlock.RenderTransform>
@@ -81,13 +81,15 @@
             </TextBlock.RenderTransform>
         </TextBlock>
         <Label Content="MPa" Height="28" Margin="133,23,65,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="text_normalatuante" Margin="27,81,0,142" TextWrapping="Wrap" Grid.Row="1" HorizontalAlignment="Left" Width="52" Grid.RowSpan="2"/>
-        <Label Content="Md" HorizontalAlignment="Left" Margin="2,26,0,88" Width="29" Grid.Row="2"/>
-        <TextBox x:Name="text_momentoatuante" Margin="28,26,0,107" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="50"/>
-        <Label Content="kN" HorizontalAlignment="Left" Margin="78,82,0,122" Width="29" Grid.Row="1" Grid.RowSpan="2"/>
-        <Label Content="Nd" HorizontalAlignment="Left" Margin="3,81,0,123" Width="29" Grid.Row="1" Grid.RowSpan="2"/>
-        <Label Content="kN.m" HorizontalAlignment="Left" Margin="78,26,0,88" Width="44" Grid.Row="2"/>
-        <Label Content="Armadura mínima:" Margin="3,120,0,37" Grid.Row="2" HorizontalAlignment="Left" Width="109" Grid.RowSpan="2"/>
-        <TextBox x:Name="text_armaduraminima" Margin="112,123,0,10" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="73" IsEnabled="False"/>
+        <TextBox x:Name="text_normalatuante" Margin="27,70,0,153" TextWrapping="Wrap" Grid.Row="1" HorizontalAlignment="Left" Width="52" Grid.RowSpan="2"/>
+        <Label Content="Md" HorizontalAlignment="Left" Margin="2,15,0,99" Width="29" Grid.Row="2"/>
+        <TextBox x:Name="text_momentoatuante" Margin="28,15,0,118" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="50"/>
+        <Label Content="kN" HorizontalAlignment="Left" Margin="78,71,0,133" Width="29" Grid.Row="1" Grid.RowSpan="2"/>
+        <Label Content="Nd" HorizontalAlignment="Left" Margin="3,70,0,134" Width="29" Grid.Row="1" Grid.RowSpan="2"/>
+        <Label Content="kN.m" HorizontalAlignment="Left" Margin="78,15,0,99" Width="44" Grid.Row="2"/>
+        <Label Content="Armadura mínima:" Margin="1,135,0,22" Grid.Row="2" HorizontalAlignment="Left" Width="109" Grid.RowSpan="2"/>
+        <TextBox x:Name="text_armaduraminima" Margin="124,138,0,41" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="73" IsEnabled="False" Grid.RowSpan="2"/>
+        <Label Content="Compressão Simples:" Margin="0,96,0,15" Grid.Row="2" HorizontalAlignment="Left" Width="143"/>
+        <TextBox x:Name="text_compressaosimples" Margin="124,100,0,33" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="73" IsEnabled="False"/>
     </Grid>
 </Window>
