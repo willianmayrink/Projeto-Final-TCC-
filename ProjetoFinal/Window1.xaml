@@ -35,15 +35,15 @@
 
 
         <Button x:Name="btnCalcular" Content="Calcular" Margin="56,16,0,0" Grid.Row="3" HorizontalAlignment="Left" Width="104" Height="21" VerticalAlignment="Top" Click="btnCalcular_Click"/>
-        <ComboBox x:Name="comboBox1" HorizontalAlignment="Left" Height="20" Margin="40,26,0,0" VerticalAlignment="Top" Width="92" Loaded="comboBox1_Loaded" SelectionChanged="comboBox1_SelectionChanged"/>
+        <ComboBox x:Name="comboBox1" HorizontalAlignment="Left" Height="20" Margin="40,26,0,0" VerticalAlignment="Top" Width="108" Loaded="comboBox1_Loaded" SelectionChanged="comboBox1_SelectionChanged"/>
         <CheckBox x:Name="checkBox4" Content="" Margin="21,36,0,30" Grid.Row="1" HorizontalAlignment="Left" Width="15" Click="checkBox4_Click"/>
         <Label Content="Fbk" Height="28" Margin="4,22,251,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="labelFpk" Height="20" Margin="39,63,0,0" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalAlignment="Left" Width="93" TextChanged="labelFpk_TextChanged"/>
-        <TextBox x:Name="labelFpkcheio" Height="20" Margin="39,99,0,0" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalAlignment="Left" Width="93" TextChanged="labelFpkcheio_TextChanged"/>
+        <TextBox x:Name="labelFpk" Height="20" Margin="39,63,0,0" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalAlignment="Left" Width="109" TextChanged="labelFpk_TextChanged"/>
+        <TextBox x:Name="labelFpkcheio" Height="20" Margin="39,99,0,0" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalAlignment="Left" Width="109" TextChanged="labelFpkcheio_TextChanged"/>
         <Label Content="Fpk" HorizontalAlignment="Left" Margin="5,59,0,115" Width="39"/>
         <Label Content="Fpk*" HorizontalAlignment="Left" Height="28" Margin="5,94,0,0" VerticalAlignment="Top" Width="33"/>
-        <Label Content="MPa" Height="28" Margin="131,59,67,0" VerticalAlignment="Top"/>
-        <Label Content="MPa" Height="28" Margin="132,93,66,0" VerticalAlignment="Top"/>
+        <Label Content="MPa" Height="28" Margin="146,59,52,0" VerticalAlignment="Top"/>
+        <Label Content="MPa" Height="28" Margin="147,93,51,0" VerticalAlignment="Top"/>
         <Label Content="Altura da parede" Margin="2,52,0,59" Grid.Row="2" HorizontalAlignment="Left" Width="99"/>
         <Label Content="Direção do vento" Margin="5,123,0,41" HorizontalAlignment="Left" Width="134"/>
         <TextBlock Text="➔" RenderTransformOrigin="0.759,0.794" Margin="46,186,0,13" Foreground="Black" FontSize="16" HorizontalAlignment="Left" Width="16" />
@@ -59,7 +59,7 @@
             </CheckBox.RenderTransform>
         </CheckBox>
         <CheckBox x:Name="checkBox3" Content="&#x9;" Margin="21,227,0,59" HorizontalAlignment="Left" Width="18" Click="checkBox3_Click" Grid.RowSpan="2"/>
-        <TextBox Margin="107,53,0,80" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="51"/>
+        <TextBox x:Name="text_alturaparede" Margin="107,53,0,80" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="51"/>
         <Label Content="cm" HorizontalAlignment="Left" Margin="161,54,0,60" Width="29" Grid.Row="2"/>
         <TextBlock FontSize="16" FontWeight="Light" FontFamily="Segoe UI" RenderTransformOrigin="0.5,0.5" 
                                        Text="➔" Margin="48,153,0,44" Foreground="Black" HorizontalAlignment="Left" Width="20">
@@ -80,7 +80,7 @@
                 <RotateTransform Angle="90"/>
             </TextBlock.RenderTransform>
         </TextBlock>
-        <Label Content="MPa" Height="28" Margin="133,23,65,0" VerticalAlignment="Top"/>
+        <Label Content="MPa" Height="28" Margin="148,23,50,0" VerticalAlignment="Top"/>
         <TextBox x:Name="text_normalatuante" Margin="27,70,0,153" TextWrapping="Wrap" Grid.Row="1" HorizontalAlignment="Left" Width="52" Grid.RowSpan="2"/>
         <Label Content="Md" HorizontalAlignment="Left" Margin="2,15,0,99" Width="29" Grid.Row="2"/>
         <TextBox x:Name="text_momentoatuante" Margin="28,15,0,118" TextWrapping="Wrap" Grid.Row="2" HorizontalAlignment="Left" Width="50"/>

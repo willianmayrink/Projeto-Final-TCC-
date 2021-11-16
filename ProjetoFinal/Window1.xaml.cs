@@ -267,6 +267,11 @@ namespace ProjetoFinal
 
             BlocosAlma = BlocosAlma.OrderBy(m => m.Xcg).ToList();
             BlocosFlange = BlocosFlange.OrderBy(m => m.Xcg).ToList();
+            double he = Convert.ToDouble(text_alturaparede.Text);
+            double te = BlocosAlma[0].espessura;
+            double indesbeltez = he / te;
+            double R = 1 - Math.Pow(indesbeltez / 40, 3);
+            
 
             #endregion
 
@@ -311,12 +316,8 @@ namespace ProjetoFinal
             double InicioLN;
             double fimLN;
             double EixoPrincipal = BlocosAlma[0].Ycg;
-            double he = 220; //receber valor como input
-            double te = BlocosAlma[0].espessura;
-            double indesbeltez = he / te;
-            double R = 0.939;
             dadosgerais.Append("====================  DADOS GERAIS  ====================\n").Append('\n');
-            dadosgerais.Append("Altura efetiva: ").Append(he.ToString()).Append(" cm\n").Append("R: ").Append(R.ToString()).Append('\n').Append("Indice Esbeltez (λ): ").Append(R.ToString()).Append('\n');
+            dadosgerais.Append("Altura efetiva: ").Append(he.ToString()).Append(" cm\n").Append("R: ").Append(R.ToString()).Append('\n').Append("Indice Esbeltez (λ): ").Append(indesbeltez.ToString()).Append('\n');
 
 
             if (BlocosFlange.Count == 0)
@@ -359,9 +360,16 @@ namespace ProjetoFinal
             PlotModel model = new PlotModel() { Title = "Gráfico resistência Normal x  Momento" };
             var grafpontos = new ScatterSeries();
             var grafpontosrompidos= new ScatterSeries();
+            var grafpontos3= new ScatterSeries();
+            var grafpontos4 = new ScatterSeries();
+            var grafpontos4a = new ScatterSeries();
+            var grafpontos5 = new ScatterSeries();
             var pontoentrada = new ScatterSeries();
-
             bool ruptura;
+            bool escoamento;
+            bool dominio4a;
+            bool dominio4;
+
             double Xcg = CalcularCentroide(BlocosAlma, BlocosFlange, InicioLN);
             double ChuteLN = fimLN;  // colocando como start da ln o fim da seção , considerando assim partindo da parte toda tracionada até começo da seção considerando parte toda comprimida
             double normal,momento,FimChuteLN;
@@ -374,16 +382,28 @@ namespace ProjetoFinal
             {
                 normal = Normal(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R);
                 momento = Momento(ListaFerros, BlocosAlma, BlocosFlange, fimLN, InicioLN, ChuteLN, EixoPrincipal, fpkcheio, fpk, R, Xcg);
-                
-                if (!ruptura)
-                {
-                    grafpontos.Points.Add(new ScatterPoint(normal, momento, 2, 100,300));
+
+                if (ruptura)
+                {//
+                    grafpontos.Points.Add(new ScatterPoint(normal, momento, 2, 100, 300));
                 }
-                else
+                else if (!ruptura && !escoamento)
                 {
                     grafpontosrompidos.Points.Add(new ScatterPoint(normal, momento, 2, 350, 15));
                 }
+                else if(escoamento && !dominio4a)
+                { 
+                grafpontos3.Points.Add(new ScatterPoint(normal, momento, 2, 350, 15));
+                    }
 
+                else if (dominio4a && ChuteLN>InicioLN)
+                {
+                    grafpontos4a.Points.Add(new ScatterPoint(normal, momento, 2, 350, 15));
+                }
+                else
+                {
+                    grafpontos5.Points.Add(new ScatterPoint(normal, momento, 2, 350, 15));
+                }
 
                 sb1.Append(normal.ToString()).Append(';').Append(momento.ToString()).Append(';').Append(Math.Abs((ChuteLN - fimLN)).ToString()).Append(';').Append(sb2).Append('\n');//.Append(ruptura.ToString()).Append('\n');
                 ChuteLN = ChuteLN - 1;
@@ -395,18 +415,18 @@ namespace ProjetoFinal
 
             if (text_normalatuante.Text.Length > 0 || text_momentoatuante.Text.Length > 0)
             {
-                VerificarArmaduraMinima();
+                VerificarArmaduraMinimaeCompressaosimples();
             }
             else
             {
                 text_armaduraminima.Clear();
             }
 
-            void VerificarArmaduraMinima()
+            void VerificarArmaduraMinimaeCompressaosimples()
             {
                 bool parede100 = true;
+                double normalresistentesimplificado = 0;
                 double normalresistente = 0;
-
                 double normalatuante = Convert.ToDouble(text_normalatuante.Text);
                 double momentoatuante = Convert.ToDouble(text_momentoatuante.Text);
 
@@ -428,24 +448,39 @@ namespace ProjetoFinal
 
                 if (parede100)
                 {
-                    normalresistente = fpkcheio * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - (2 * (momentoatuante / normalatuante)));  // fd*B(h-2ex)
-
+                    normalresistentesimplificado = fpkcheio * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - (2 * (momentoatuante / normalatuante)*100));  // fd*B(h-2ex)
+                    normalresistente = fpkcheio * 0.7 / 2.0 * 14 * (fimLN - InicioLN) * R;
                 }
                 else
                 {
-                    normalresistente = fpk * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - ( 2 * (momentoatuante / normalatuante)*100));
+                    normalresistentesimplificado = fpk * 0.7 / 2.0 * 14 * (Math.Abs(fimLN - InicioLN) - ( 2 * (momentoatuante / normalatuante)*100));
+                    normalresistente = fpk * 0.7 / 2.0 * 14 * (fimLN - InicioLN) * R;
                 }
                 StringBuilder sb3 = new StringBuilder();
                 sb3.Append(Math.Abs(fimLN - InicioLN).ToString()).Append(';');
                 sb3.Append((momentoatuante / normalatuante).ToString()).Append(';');
                 sb3.Append(fpk.ToString()).Append(';');
-                sb3.Append(normalresistente.ToString()).Append(';');
+                sb3.Append(normalresistentesimplificado.ToString()).Append(';');
                 File.WriteAllText(@"C:\testes\normalresiste.txt", sb3.ToString());
-                if (normalatuante < normalresistente  && (momentoatuante / normalatuante) < (0.5 * Math.Abs(fimLN - InicioLN)) )// Nd<Nrd   e  e<0.5h 
+                if (normalatuante < normalresistentesimplificado  && (momentoatuante / normalatuante) < (0.5 * Math.Abs(fimLN - InicioLN)) )  // Nd<Nrd   e  e<0.5h 
                 {
                 text_armaduraminima.Text = "PASSA";}
                 else { 
                 text_armaduraminima.Text = "NÃO PASSA";}
+
+                if (normalresistente > normalatuante)
+                {
+                    text_compressaosimples.Text = "PASSA";
+                }
+                else
+                {
+                    text_compressaosimples.Text = "NÃO PASSA";
+                }
+                
+                
+
+
+
                 pontoentrada.Points.Add(new ScatterPoint(normalatuante, momentoatuante, 8));
                 pontoentrada.MarkerType = MarkerType.Triangle;
                 pontoentrada.MarkerFill = OxyColors.Green;
@@ -458,12 +493,22 @@ namespace ProjetoFinal
          
             grafpontos.MarkerType = MarkerType.Circle;
             grafpontosrompidos.MarkerType = MarkerType.Circle;
+            grafpontos3.MarkerType = MarkerType.Circle;
             grafpontos.MarkerFill = OxyColors.Blue;
             grafpontosrompidos.MarkerFill = OxyColors.Red;
+            grafpontos3.MarkerFill = OxyColors.Magenta;
+            grafpontos4.MarkerFill = OxyColors.Black;
+            grafpontos4a.MarkerFill = OxyColors.DarkOrange;
+            grafpontos5.MarkerFill = OxyColors.Gray;
+
             model.Axes.Add(new LinearAxis { Title = "Normal (kN)", Position = AxisPosition.Bottom /*, Minimum = -20, Maximum = 80 */});
             model.Axes.Add(new LinearAxis { Title = "Momento (kN.m)", Position = AxisPosition.Left/*, Minimum = -20, Maximum = 80*/});
             model.Series.Add(grafpontos);
             model.Series.Add(grafpontosrompidos);
+            model.Series.Add(grafpontos3);
+            model.Series.Add(grafpontos4);
+            model.Series.Add(grafpontos4a);
+            model.Series.Add(grafpontos5);
             Grafica.Model = model;
 
             // criando os txt's
@@ -482,29 +527,36 @@ namespace ProjetoFinal
                 double fyk = 50; //KN/cm²     //500MPa
                 double deformacaoescoamento = (fyk / 1.15) / Es; // fyd/Es
                 ruptura = false;
+                escoamento = true;
+                dominio4a = true;
                 double aux=0;
-                dadosNormal.Append((fimLN - Xln).ToString()).Append(';').Append( (fimLN-Xlc).ToString()).Append(';').Append(fimLN.ToString()).Append(';');
+                dadosNormal.Append((fimLN - Xln).ToString()).Append(';').Append( (fimLN-Xlc).ToString()).Append(';');
                 foreach (Ferros ferro in ferros)
                 {
                     if (ferro.Xcg < Xln)
                     {
+                        dominio4a = false;
+
                         double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));  // compatibilização  (0.003 / x) = Ei / (di - x) 
 
                         if (ei < deformacaoescoamento)
                         {   // compatibilização    (0.003 / x) = Ei / (di - x) 
                             tracao += ferro.area/ 1.15 * ei * Es;   //(As/Gamas) * Ei* ES    //KN  (0.5 da norma)
                             aux = ferro.area / 1.15 * ei * Es;
+                            
                         }
                         else if (ei >= deformacaoescoamento && ei < 0.01)
                         {
                             tracao += ferro.area * fyk / 1.15 ;   // (As/Gamas) * fyk * 0.5       (0.5 da norma) // KN/cm²
                             aux = ferro.area * fyk / 1.15;
+                            escoamento = false;
                         }
                         else if (ei > 0.01)
                         {
                             tracao += ferro.area * fyk / 1.15 ;
                             aux = ferro.area * fyk / 1.15;
                             ruptura = true;
+                            escoamento = false;
                         }
                         //dadosNormal.Append(aux.ToString()).Append(';') ;
                     }
@@ -538,13 +590,14 @@ namespace ProjetoFinal
                         {
                             compressao += fpkcheio * 0.7 / 2.0 * bloco.area;
                             parcial= fpkcheio * 0.7 / 2.0 * bloco.area;
-                            dadosNormal.Append(parcial.ToString()).Append(';').Append(bloco.grauteado.ToString()).Append(';');
+                            dadosNormal.Append(fpkcheio.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
+                            
                         }
                         else
                         {
                             compressao += fpk * 0.7 / 2.0 * bloco.area ;
                             parcial= fpk * 0.7 / 2.0 * bloco.area;
-                            dadosNormal.Append(parcial.ToString()).Append(';').Append(bloco.grauteado.ToString()).Append(';');
+                            dadosNormal.Append(fpk.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                         }
 
                     }
@@ -563,7 +616,7 @@ namespace ProjetoFinal
                         {
                             compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) ;
                             parcial=(fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura);
-                            dadosNormal.Append(parcial.ToString()).Append(';').Append(bloco.grauteado.ToString()).Append(';');
+                            dadosNormal.Append(fpk.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                         }
                     }
                    
@@ -581,10 +634,12 @@ namespace ProjetoFinal
                             if (bloco.grauteado)
                             {
                                 compressao += (fpkcheio * 0.7) / 2.0 * bloco.area ;
+                                dadosNormal.Append(fpkcheio.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                             }
                             else
                             {
                                 compressao += (fpk * 0.7) / 2.0 * bloco.area ;
+                                dadosNormal.Append(fpk.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                             }
 
                         }
@@ -594,10 +649,12 @@ namespace ProjetoFinal
                             if (bloco.grauteado)
                             {
                                 compressao += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) ;
+                                dadosNormal.Append(fpkcheio.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                             }
                             else
                             {
                                 compressao += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) ;
+                                dadosNormal.Append(fpk.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                             }
                         }
 
@@ -611,10 +668,12 @@ namespace ProjetoFinal
                             if (bloco.grauteado)
                             {
                                 compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) ;
+                                dadosNormal.Append(fpkcheio.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                             }
                             else
                             {
                                 compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) ;
+                                dadosNormal.Append(fpk.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                             }
                         }
                         else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
@@ -623,10 +682,12 @@ namespace ProjetoFinal
                             if (bloco.grauteado)
                             {
                                 compressao += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))) ;
+                                dadosNormal.Append(fpkcheio.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                             }
                             else
                             {
                                 compressao += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2)));
+                                dadosNormal.Append(fpk.ToString()).Append(';').Append(bloco.area.ToString()).Append(';').Append(';');
                             }
                         }
 
