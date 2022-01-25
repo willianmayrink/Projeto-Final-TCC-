@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -125,9 +126,13 @@ namespace ProjetoFinal
 
         private void btnCalcular_Click(object sender, RoutedEventArgs e)
         {
-            
+            var timer = new Stopwatch();
+            timer.Start();
             StringBuilder sb1 = new StringBuilder();
             StringBuilder sb2 = new StringBuilder();
+            StringBuilder sb4 = new StringBuilder();
+            StringBuilder testeareas = new StringBuilder();
+            StringBuilder testeareas2 = new StringBuilder();
             StringBuilder dadosgerais = new StringBuilder();
             StringBuilder sbfinal = new StringBuilder();
             StringBuilder dadosNormal = new StringBuilder();
@@ -511,10 +516,17 @@ namespace ProjetoFinal
             model.Series.Add(grafpontos5);
             Grafica.Model = model;
 
+
+            timer.Stop();
+            TimeSpan timeTaken = timer.Elapsed;
+            dadosgerais.Append('\n').Append(timeTaken.ToString());
             // criando os txt's
             File.WriteAllText(@"C:\testes\Dados Iterativos.txt", sb1.ToString());
             File.WriteAllText(@"C:\testes\Dados Gerais.txt", dadosgerais.ToString());
             File.WriteAllText(@"C:\testes\Dados normal.txt", dadosNormal.ToString());
+            File.WriteAllText(@"C:\testes\Dados areas.txt", sb4.ToString());
+            File.WriteAllText(@"C:\testes\teste areas.txt", testeareas.ToString());
+            File.WriteAllText(@"C:\testes\teste areas2.txt", testeareas2.ToString());
             #endregion
 
 
@@ -569,23 +581,6 @@ namespace ProjetoFinal
                     
                     if ((bloco.Xcg - (bloco.comprimento / 2)) >= Xlc)
                     {
-                        //Bloco inteiro entra na contribuição, ai só analisar % de graute, sua resistencia e multiplicar pelo comprimento
-
-                        /*if(numerograutes ==0){
-                         
-                         }
-                        else if (numerograutes == numerodefuros){
-
-                        }
-
-                        else{
-                        fpkparcial= (areabloco* (numerodegraute/numerodefuros)* fpkcheio + areabloco * (1-(numerodegraute/numerodefuros))* fpk )/ (areabloco)
-                        
-                         }
-                         */
-                        
-                        
-
                         if (bloco.grauteado)
                         {
                             compressao += fpkcheio * 0.7 / 2.0 * bloco.area;
@@ -705,6 +700,8 @@ namespace ProjetoFinal
                 double Es = 21000; // kN/cm²
                 double fyk = 50; //kN/cm²
                 double defescoamento = fyk / 1.15 / Es; // fyd/Es
+                double areablocos=0;
+                double areablocosgr = 0;
                 sb2.Clear();
                 sb2.Append((reffimLN - Xlc).ToString()).Append(";");
                 
@@ -730,7 +727,7 @@ namespace ProjetoFinal
                         {
                             Mrd += ferro.area * fyk / 1.15  * (Xcg - ferro.Xcg);
                             parcial = ferro.area * fyk / 1.15  * (Xcg - ferro.Xcg);  //(As/Gamas) * fyk * di
-                            // condição que ferro ruptura e nao é encontrado um valor de momento para este caso de LN.
+                            
                             sb2.Append("RUPTURA").Append(";").Append(ei.ToString()).Append(";").Append((parcial/100).ToString()).Append(";");
                         }
                     }
@@ -738,16 +735,20 @@ namespace ProjetoFinal
                 
                 foreach (Blocos bloco in alma)
                 {
+
                     if ((bloco.Xcg - bloco.comprimento / 2) >= Xlc)
                     {   //Bloco inteiro entra na contribuição, ai só analisar % de graute, sua resistencia e multiplicar pelo comprimento
 
                         if (bloco.grauteado)
                         {
                             Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area  * (bloco.Xcg - Xcg); // Fd= fpk* 0.7 / 2 * A * R * Di  //Valor em KN*cm
+                            areablocosgr += bloco.area;
                         }
                         else
                         {
                             Mrd += (fpk * 0.7) / 2.0 * bloco.area  * (bloco.Xcg - Xcg);
+                            areablocos += bloco.area;
+                            testeareas.Append(bloco.area.ToString() +"; BLOCO INTEIRO ALMA");
                         }
 
                     }
@@ -756,13 +757,19 @@ namespace ProjetoFinal
                         if (bloco.grauteado)
                         {
                             Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura)  * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
+                            areablocosgr += (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura);
                         }
                         else
                         {
                             Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura) * ((Xlc + ((bloco.Xcg + bloco.comprimento / 2) - Xlc) / 2) - Xcg);
+                            areablocos += (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura);
+                            testeareas.Append( (((bloco.Xcg + bloco.comprimento / 2) - Xlc) * bloco.espessura).ToString() + "; BLOCO PARCIAL ALMA" );
+                            //testeareas2.Append(bloco.Xcg.ToString() + "+" + bloco.comprimento.ToString() + ";" + bloco.espessura.ToString() + ";" + Xlc.ToString() + "\n");
                         }
                     }
                 }
+               
+
                 foreach (Blocos bloco in flange)
                 {
 
@@ -773,16 +780,19 @@ namespace ProjetoFinal
                             if (bloco.grauteado)
                             {
                                 Mrd += (fpkcheio * 0.7) / 2.0 * bloco.area  * (bloco.Xcg - Xcg);
+                                areablocosgr += bloco.area;
                             }
                             else
                             {
                                 Mrd += (fpk * 0.7) / 2.0 * bloco.area  * (bloco.Xcg - Xcg);
+                                areablocos += bloco.area;
+                                testeareas.Append(bloco.area.ToString() + "; BLOCO INTEIRO FLANGE" );
                             }
 
                         }
                         else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
                         {
-                            //entra o comprimento parcial do bloco na conta // Considerar parte nao grauteada
+                            //entra o comprimento parcial do bloco na conta 
                             if (bloco.grauteado)
                             {
                                 Mrd += (fpkcheio * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14)  * (bloco.Xcg - Xcg);
@@ -790,6 +800,8 @@ namespace ProjetoFinal
                             else
                             {
                                 Mrd += (fpk * 0.7) / 2.0 * ((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14) * (bloco.Xcg - Xcg);
+                                testeareas.Append(((84 - ((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2)) * 14).ToString() + "; BLOCO PARCIAL COMPRIMENTO FLANGE");
+                                
                             }
                         }
 
@@ -799,14 +811,18 @@ namespace ProjetoFinal
                         if (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) < 84) // soma todo comprimento do bloco, esta dentro da flange de 84=6.t 
                         {
 
-                            //entra contribuição do comprimento inteiro, mas só uma parte da espessura, ver como calcular...
+                            //entra contribuição do comprimento inteiro, mas só uma parte da espessura
                             if (bloco.grauteado)
                             {
                                 Mrd += (fpkcheio * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento) * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                                areablocosgr += (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento);
                             }
                             else
                             {
                                 Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento)  * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                                areablocos += ((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento;
+                                testeareas.Append((((bloco.Xcg + bloco.espessura / 2) - Xlc) * bloco.comprimento).ToString() + "; BLOCO PARCIAL ESPESSURA FLANGE");
+                                testeareas2.Append(bloco.Xcg.ToString() + ";" + bloco.espessura.ToString() + ";" + Xlc.ToString() + "\n" );
                             }
                         }
                         else if ((((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 + bloco.comprimento / 2) > 84) & (((Math.Abs(bloco.Ycg - eixoprincipal)) - 7 - bloco.comprimento / 2) < 84))
@@ -820,10 +836,16 @@ namespace ProjetoFinal
                             else
                             {
                                 Mrd += (fpk * 0.7) / 2.0 * (((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2)))  * ((Xlc + ((bloco.Xcg + bloco.espessura / 2) - Xlc) / 2) - Xcg);
+                                testeareas.Append((((bloco.Xcg + bloco.espessura / 2) - Xlc) * (84 - (Math.Abs(bloco.Ycg - eixoprincipal) - 7 - bloco.comprimento / 2))).ToString() + "; BLOCO PARCIAL ESPESSURA e COMPRIMENTO FLANGE");
+
                             }
                         }
                     }
                 }
+                sb4.Append(areablocos.ToString()).Append(";");
+                sb4.Append(areablocosgr.ToString()).Append(";");
+                sb4.Append("\n");
+                testeareas.Append("\n");
                 return Mrd / 100; //passando para KN*m
             }
 
@@ -846,8 +868,8 @@ namespace ProjetoFinal
                 return (SomaXi / Area + InicioLN);
             }
 
-           
 
+            
         }
 
         private void labelFpk_TextChanged(object sender, TextChangedEventArgs e)
