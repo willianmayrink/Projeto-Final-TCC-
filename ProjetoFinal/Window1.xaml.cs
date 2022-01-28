@@ -549,7 +549,7 @@ namespace ProjetoFinal
                     {
                         dominio4a = false;
 
-                        double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));  // compatibilização  (0.003 / x) = Ei / (di - x) 
+                        double ei = ((0.003) / Math.Abs(fimLN - Xln) * (Math.Abs(Xln - ferro.Xcg)));  // compatibilzação  (0.003 / x) = Ei / (di - x) 
 
                         if (ei < deformacaoescoamento)
                         {   // compatibilização    (0.003 / x) = Ei / (di - x) 
