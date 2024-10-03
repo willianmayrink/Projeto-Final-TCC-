@@ -1,7 +1,7 @@
 # Plugin TCC - Linguaguem C#
 ## Criação de um plug-in dentro do software Revit Autodesk, que faz a verificação para paredes de alvenaria estrutural solicitadas a flexocompressão.
 
-Considerações:
+Considerações (OBS: Toda a regra de negocio está dentro do windows.xaml.cs, pois na época não tinha conhecimento de como organizar o código e as pastas:
 
 <img src="https://latex.codecogs.com/svg.latex?Prd\;{\geq}\;Pd\"/>
 <img src="https://latex.codecogs.com/svg.latex?Mrd\;{\geq}\;Md\"/>
